@@ -6,36 +6,46 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import type { ZoomLevel } from '../types';
+import ProjectSettings from './ProjectSettings';
 
 interface ToolbarProps {
   projectName: string;
+  projectStart?: string;
+  projectEnd?: string;
   zoomLevel: ZoomLevel;
   onProjectNameChange: (name: string) => void;
+  onProjectDatesChange: (start?: string, end?: string) => void;
   onZoomChange: (level: ZoomLevel) => void;
   onAddWorkPackage: () => void;
   onAddMilestone: () => void;
   onExportJSON: () => void;
   onCopyJSON: () => void;
   onExportPDF: () => void;
+  onExportPNG: () => void;
   onImportJSON: (json: string) => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
   projectName,
+  projectStart,
+  projectEnd,
   zoomLevel,
   onProjectNameChange,
+  onProjectDatesChange,
   onZoomChange,
   onAddWorkPackage,
   onAddMilestone,
   onExportJSON,
   onCopyJSON,
   onExportPDF,
+  onExportPNG,
   onImportJSON,
 }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(projectName);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [importText, setImportText] = useState('');
 
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -174,6 +184,17 @@ const Toolbar: React.FC<ToolbarProps> = ({
       {/* Action Buttons */}
       <div className="toolbar-actions flex items-center gap-3">
         <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="p-2 bg-white text-text rounded-md border border-border hover:bg-surface transition-all"
+          title="Projekt-Einstellungen"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </button>
+
+        <button
           onClick={onAddWorkPackage}
           className="px-4 py-2 bg-info text-white text-sm font-medium rounded-md hover:bg-opacity-90 transition-all flex items-center gap-2"
         >
@@ -241,7 +262,19 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
-                PDF Export
+                PDF Export (Timeline)
+              </button>
+              <button
+                onClick={() => {
+                  onExportPNG();
+                  setIsExportMenuOpen(false);
+                }}
+                className="w-full px-4 py-2 text-left text-sm text-text hover:bg-surface transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                PNG Export (Timeline)
               </button>
             </div>
           )}
@@ -315,6 +348,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Project Settings Dialog */}
+      {isSettingsOpen && (
+        <ProjectSettings
+          projectStart={projectStart}
+          projectEnd={projectEnd}
+          onUpdate={onProjectDatesChange}
+          onClose={() => setIsSettingsOpen(false)}
+        />
       )}
     </div>
   );

@@ -41,6 +41,8 @@ export interface Project {
   id: string;
   name: string;
   description?: string;
+  start?: string; // ISO format: YYYY-MM-DD - Optional project start date
+  end?: string; // ISO format: YYYY-MM-DD - Optional project end date
   settings: ProjectSettings;
   workPackages: WorkPackage[];
   milestones: Milestone[];
@@ -95,4 +97,9 @@ export const TIMELINE_CONSTANTS = {
   PADDING_RIGHT: 40,
   PADDING_TOP: 20,
   PADDING_BOTTOM: 20,
+  // AP Label und Padding (neu)
+  AP_LABEL_HEIGHT: 24,
+  AP_LABEL_SPACING: 8,
+  AP_PADDING_HORIZONTAL: 16,
+  AP_PADDING_VERTICAL: 8,
 } as const;

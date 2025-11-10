@@ -23,6 +23,8 @@ interface TimelineProps {
   milestones: Milestone[];
   zoomLevel: ZoomLevel;
   clampingEnabled: boolean;
+  projectStart?: string;
+  projectEnd?: string;
   onUpdateSubPackage: (wpId: string, spId: string, updates: Partial<SubPackage>) => void;
   onUpdateMilestone?: (msId: string, updates: Partial<Milestone>) => void;
 }
@@ -32,6 +34,7 @@ const Timeline: React.FC<TimelineProps> = ({
   milestones,
   zoomLevel,
   clampingEnabled,
+  projectStart,
   onUpdateSubPackage,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -54,11 +57,20 @@ const Timeline: React.FC<TimelineProps> = ({
     HEADER_HEIGHT,
     PADDING_LEFT,
     PADDING_RIGHT,
+    AP_LABEL_HEIGHT,
+    AP_LABEL_SPACING,
+    AP_PADDING_HORIZONTAL,
+    AP_PADDING_VERTICAL,
   } = TIMELINE_CONSTANTS;
 
   // Berechne Viewport-Zeitbereich
   const viewStart = useMemo(() => {
-    // Finde frühestes Datum aus allen Daten
+    // Wenn Projektstart gesetzt, verwende diesen
+    if (projectStart) {
+      return projectStart;
+    }
+
+    // Ansonsten: Finde frühestes Datum aus allen Daten
     const allDates = [
       ...workPackages.map(wp => wp.start),
       ...workPackages.flatMap(wp => wp.subPackages.map(sp => sp.start)),
@@ -72,7 +84,7 @@ const Timeline: React.FC<TimelineProps> = ({
 
     // Starte etwas früher für bessere Übersicht
     return addDays(minDate, -7);
-  }, [workPackages, milestones]);
+  }, [workPackages, milestones, projectStart]);
 
   const viewWidth = 1200; // Fixed width, can be made dynamic
   const availableWidth = viewWidth - PADDING_LEFT - PADDING_RIGHT;
@@ -83,11 +95,16 @@ const Timeline: React.FC<TimelineProps> = ({
     return PADDING_LEFT + (days / zoomConfig.viewDays) * availableWidth;
   };
 
-  // Berechne Zeilenhöhe für WorkPackage
+  // Berechne Zeilenhöhe für WorkPackage (mit AP Label Height und Padding)
   const getRowHeight = (wp: WorkPackage): number => {
     const uapCount = wp.subPackages.length;
-    if (uapCount === 0) return BASE_ROW_HEIGHT;
-    return BASE_ROW_HEIGHT + uapCount * (SUBBAR_HEIGHT + UAP_SPACING) + ROW_PADDING;
+    const labelSpace = AP_LABEL_HEIGHT + AP_LABEL_SPACING;
+
+    if (uapCount === 0) {
+      return labelSpace + BASE_ROW_HEIGHT;
+    }
+
+    return labelSpace + BASE_ROW_HEIGHT + uapCount * (SUBBAR_HEIGHT + UAP_SPACING) + ROW_PADDING + (2 * AP_PADDING_VERTICAL);
   };
 
   // Berechne Y-Position für WorkPackage
@@ -212,7 +229,7 @@ const Timeline: React.FC<TimelineProps> = ({
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-white">
+    <div className="timeline-container flex-1 overflow-auto bg-white">
       <svg
         ref={svgRef}
         width={viewWidth}
@@ -221,6 +238,7 @@ const Timeline: React.FC<TimelineProps> = ({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         className="timeline-svg"
+        id="gantt-chart-svg"
       >
         {/* Grid Lines */}
         {timeTicks.map(tick => (
@@ -269,35 +287,41 @@ const Timeline: React.FC<TimelineProps> = ({
         {workPackages.map((wp, wpIndex) => {
           const rowY = getRowY(wpIndex);
           const rowHeight = getRowHeight(wp);
+          const labelSpace = AP_LABEL_HEIGHT + AP_LABEL_SPACING;
+
+          // AP Container Position (NACH dem Label)
+          const containerY = rowY + labelSpace;
+          const containerHeight = rowHeight - labelSpace - 10;
 
           return (
             <g key={wp.id} className="work-package-row">
-              {/* AP Container (grauer Hintergrund-Box) */}
+              {/* AP Label (ÜBER dem Container) */}
+              <text
+                x={PADDING_LEFT + 10}
+                y={rowY + AP_LABEL_HEIGHT - 4}
+                className="text-sm font-medium fill-text"
+              >
+                {wp.title}
+              </text>
+
+              {/* AP Container (grauer Hintergrund-Box mit Padding) */}
               <rect
                 x={dateToX(wp.start)}
-                y={rowY + 10}
+                y={containerY}
                 width={Math.max(20, dateToX(wp.end) - dateToX(wp.start))}
-                height={rowHeight - 20}
+                height={containerHeight}
                 fill="var(--color-surface)"
                 stroke="var(--color-border)"
                 strokeWidth={1}
                 rx={8}
               />
 
-              {/* AP Label */}
-              <text
-                x={PADDING_LEFT + 10}
-                y={rowY + 30}
-                className="text-sm font-medium fill-text"
-              >
-                {wp.title}
-              </text>
-
-              {/* SubPackages */}
+              {/* SubPackages (mit Padding innerhalb des Containers) */}
               {wp.subPackages.map((sp, spIndex) => {
-                const spY = rowY + 50 + spIndex * (SUBBAR_HEIGHT + UAP_SPACING);
-                const spX = dateToX(sp.start);
-                const spWidth = Math.max(60, dateToX(sp.end) - spX);
+                const spY = containerY + AP_PADDING_VERTICAL + 10 + spIndex * (SUBBAR_HEIGHT + UAP_SPACING);
+                const spX = Math.max(dateToX(wp.start) + AP_PADDING_HORIZONTAL, dateToX(sp.start));
+                const spEndX = Math.min(dateToX(wp.end) - AP_PADDING_HORIZONTAL, dateToX(sp.end));
+                const spWidth = Math.max(60, spEndX - spX);
 
                 return (
                   <g key={sp.id} className="sub-package">

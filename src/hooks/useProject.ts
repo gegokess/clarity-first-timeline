@@ -96,6 +96,11 @@ export function useProject() {
     }));
   }, []);
 
+  const updateProjectDates = useCallback((start?: string, end?: string) => {
+    setProject(prev => ({ ...prev, start, end }));
+    showToast('success', 'Projekt-Zeitraum aktualisiert');
+  }, [showToast]);
+
   // Auto-Rollup: Berechnet AP-Daten aus UAPs
   const rollupWorkPackageDates = useCallback((apId: string) => {
     setProject(prev => {
@@ -380,6 +385,7 @@ export function useProject() {
     // Projekt
     updateProjectName,
     updateProjectSettings,
+    updateProjectDates,
 
     // WorkPackage
     addWorkPackage,

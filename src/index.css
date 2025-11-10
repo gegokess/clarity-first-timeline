@@ -108,3 +108,55 @@ body {
 .animate-slideIn {
   animation: slideIn 0.3s ease-out;
 }
+
+/* Print Styles - Nur Timeline anzeigen */
+@media print {
+  /* Verstecke alles außer Timeline */
+  .toolbar-actions,
+  button,
+  .three-dot-menu,
+  nav,
+  header {
+    display: none !important;
+  }
+
+  /* Verstecke Sidebar (WorkPackageTree) */
+  .w-96 {
+    display: none !important;
+  }
+
+  /* Timeline auf volle Breite */
+  .timeline-container {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Optimiere SVG für Druck */
+  .timeline-svg {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Entferne Schatten */
+  * {
+    box-shadow: none !important;
+  }
+
+  /* Optimiere Text */
+  body {
+    font-size: 10pt;
+    background: white;
+    margin: 0;
+    padding: 10px;
+  }
+
+  /* Seitenumbrüche vermeiden */
+  svg, .timeline-container {
+    page-break-inside: avoid;
+  }
+}
+
+@page {
+  size: A4 landscape;
+  margin: 0.5cm;
+}

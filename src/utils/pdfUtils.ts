@@ -142,3 +142,38 @@ export function cleanupPDFExport(): void {
   window.removeEventListener('beforeprint', preparePrintView);
   window.removeEventListener('afterprint', restoreNormalView);
 }
+
+/**
+ * Exportiert die Timeline als PNG
+ * Nutzt html-to-image library
+ */
+export async function exportTimelineToPNG(): Promise<void> {
+  try {
+    // Dynamischer Import von html-to-image
+    const { toPng } = await import('html-to-image');
+
+    // Finde das SVG-Element
+    const svgElement = document.getElementById('gantt-chart-svg');
+    if (!svgElement) {
+      throw new Error('Timeline SVG nicht gefunden');
+    }
+
+    // Konvertiere zu PNG
+    const dataUrl = await toPng(svgElement, {
+      quality: 1.0,
+      pixelRatio: 2, // Höhere Auflösung
+      backgroundColor: '#ffffff',
+    });
+
+    // Download-Link erstellen
+    const link = document.createElement('a');
+    link.download = `gantt-chart-${new Date().toISOString().split('T')[0]}.png`;
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error('Fehler beim PNG-Export:', error);
+    throw error;
+  }
+}

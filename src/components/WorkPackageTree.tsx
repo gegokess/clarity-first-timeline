@@ -5,25 +5,32 @@
  */
 
 import React, { useState } from 'react';
-import type { WorkPackage } from '../types';
+import type { WorkPackage, Milestone } from '../types';
 import SubPackageCard from './SubPackageCard';
+import MilestoneList from './MilestoneList';
 
 interface WorkPackageTreeProps {
   workPackages: WorkPackage[];
+  milestones: Milestone[];
   onUpdateWorkPackage: (id: string, updates: Partial<WorkPackage>) => void;
   onDeleteWorkPackage: (id: string) => void;
   onAddSubPackage: (wpId: string) => void;
   onUpdateSubPackage: (wpId: string, spId: string, updates: Partial<WorkPackage['subPackages'][0]>) => void;
   onDeleteSubPackage: (wpId: string, spId: string) => void;
+  onUpdateMilestone: (id: string, updates: Partial<Milestone>) => void;
+  onDeleteMilestone: (id: string) => void;
 }
 
 const WorkPackageTree: React.FC<WorkPackageTreeProps> = ({
   workPackages,
+  milestones,
   onUpdateWorkPackage,
   onDeleteWorkPackage,
   onAddSubPackage,
   onUpdateSubPackage,
   onDeleteSubPackage,
+  onUpdateMilestone,
+  onDeleteMilestone,
 }) => {
   const [expandedWps, setExpandedWps] = useState<Set<string>>(
     new Set(workPackages.map(wp => wp.id))
@@ -44,6 +51,7 @@ const WorkPackageTree: React.FC<WorkPackageTreeProps> = ({
   return (
     <div className="w-96 bg-surface border-r border-border overflow-y-auto">
       <div className="p-4 space-y-4">
+        {/* WorkPackages Section */}
         {workPackages.length === 0 ? (
           <div className="text-center py-12 text-text-muted">
             <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,6 +74,17 @@ const WorkPackageTree: React.FC<WorkPackageTreeProps> = ({
               onDeleteSubPackage={spId => onDeleteSubPackage(wp.id, spId)}
             />
           ))
+        )}
+
+        {/* Milestones Section */}
+        {(workPackages.length > 0 || milestones.length > 0) && (
+          <div className="border-t border-border pt-4">
+            <MilestoneList
+              milestones={milestones}
+              onUpdate={onUpdateMilestone}
+              onDelete={onDeleteMilestone}
+            />
+          </div>
         )}
       </div>
     </div>

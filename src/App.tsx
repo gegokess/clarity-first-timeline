@@ -11,7 +11,7 @@ import Toolbar from './components/Toolbar';
 import WorkPackageTree from './components/WorkPackageTree';
 import Timeline from './components/Timeline';
 import ToastContainer from './components/ToastContainer';
-import { exportTimelineToPDF, initPDFExport, cleanupPDFExport } from './utils/pdfUtils';
+import { exportTimelineToPDF, exportTimelineToPNG, initPDFExport, cleanupPDFExport } from './utils/pdfUtils';
 
 const App: React.FC = () => {
   const {
@@ -20,6 +20,7 @@ const App: React.FC = () => {
     showToast,
     removeToast,
     updateProjectName,
+    updateProjectDates,
     addWorkPackage,
     updateWorkPackage,
     deleteWorkPackage,
@@ -28,6 +29,7 @@ const App: React.FC = () => {
     deleteSubPackage,
     addMilestone,
     updateMilestone,
+    deleteMilestone,
     exportToFile,
     copyToClipboard,
     importFromJSON,
@@ -82,14 +84,25 @@ const App: React.FC = () => {
       {/* Toolbar */}
       <Toolbar
         projectName={project.name}
+        projectStart={project.start}
+        projectEnd={project.end}
         zoomLevel={zoomLevel}
         onProjectNameChange={updateProjectName}
+        onProjectDatesChange={updateProjectDates}
         onZoomChange={setZoomLevel}
         onAddWorkPackage={addWorkPackage}
         onAddMilestone={addMilestone}
         onExportJSON={exportToFile}
         onCopyJSON={copyToClipboard}
         onExportPDF={exportTimelineToPDF}
+        onExportPNG={async () => {
+          try {
+            await exportTimelineToPNG();
+            showToast('success', 'Timeline als PNG exportiert');
+          } catch (error) {
+            showToast('error', 'Fehler beim PNG-Export');
+          }
+        }}
         onImportJSON={importFromJSON}
       />
 
@@ -98,11 +111,14 @@ const App: React.FC = () => {
         {/* WorkPackage Tree Sidebar */}
         <WorkPackageTree
           workPackages={project.workPackages}
+          milestones={project.milestones}
           onUpdateWorkPackage={updateWorkPackage}
           onDeleteWorkPackage={deleteWorkPackage}
           onAddSubPackage={addSubPackage}
           onUpdateSubPackage={updateSubPackage}
           onDeleteSubPackage={deleteSubPackage}
+          onUpdateMilestone={updateMilestone}
+          onDeleteMilestone={deleteMilestone}
         />
 
         {/* Timeline */}
@@ -111,6 +127,8 @@ const App: React.FC = () => {
           milestones={project.milestones}
           zoomLevel={zoomLevel}
           clampingEnabled={project.settings.clampUapInsideManualAp}
+          projectStart={project.start}
+          projectEnd={project.end}
           onUpdateSubPackage={updateSubPackage}
           onUpdateMilestone={updateMilestone}
         />
