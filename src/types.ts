@@ -90,16 +90,18 @@ export const DEFAULT_COLORS = [
 export const TIMELINE_CONSTANTS = {
   BASE_ROW_HEIGHT: 70,
   SUBBAR_HEIGHT: 28,
-  UAP_SPACING: 10,
+  UAP_SPACING: 16, // Erhöht von 10 auf 16 für besseren vertikalen Abstand
   ROW_PADDING: 35,
   HEADER_HEIGHT: 90,
   PADDING_LEFT: 40,
   PADDING_RIGHT: 40,
   PADDING_TOP: 20,
   PADDING_BOTTOM: 20,
-  // AP Label und Padding (neu)
+  // AP Label und Padding
   AP_LABEL_HEIGHT: 24,
-  AP_LABEL_SPACING: 8,
+  AP_LABEL_SPACING: 12, // Erhöht von 8 auf 12 für mehr Luft zwischen Label und Container
   AP_PADDING_HORIZONTAL: 16,
   AP_PADDING_VERTICAL: 8,
+  // Milestone
+  MILESTONE_BOTTOM_OFFSET: 60, // Abstand vom unteren Rand für Meilenstein-Marker
 } as const;

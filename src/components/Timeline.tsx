@@ -61,6 +61,7 @@ const Timeline: React.FC<TimelineProps> = ({
     AP_LABEL_SPACING,
     AP_PADDING_HORIZONTAL,
     AP_PADDING_VERTICAL,
+    MILESTONE_BOTTOM_OFFSET,
   } = TIMELINE_CONSTANTS;
 
   // Berechne Viewport-Zeitbereich
@@ -104,7 +105,8 @@ const Timeline: React.FC<TimelineProps> = ({
       return labelSpace + BASE_ROW_HEIGHT;
     }
 
-    return labelSpace + BASE_ROW_HEIGHT + uapCount * (SUBBAR_HEIGHT + UAP_SPACING) + ROW_PADDING + (2 * AP_PADDING_VERTICAL);
+    // Höhe = Label + oberes Padding + (UAPs mit Spacing) + unteres Padding + Abstand zum nächsten AP
+    return labelSpace + (2 * AP_PADDING_VERTICAL) + uapCount * (SUBBAR_HEIGHT + UAP_SPACING) + 20;
   };
 
   // Berechne Y-Position für WorkPackage
@@ -308,19 +310,10 @@ const Timeline: React.FC<TimelineProps> = ({
 
           // AP Container Position (NACH dem Label)
           const containerY = rowY + labelSpace;
-          const containerHeight = rowHeight - labelSpace - 10;
+          const containerHeight = rowHeight - labelSpace;
 
           return (
             <g key={wp.id} className="work-package-row">
-              {/* AP Label (ÜBER dem Container) */}
-              <text
-                x={PADDING_LEFT + 10}
-                y={rowY + AP_LABEL_HEIGHT - 4}
-                className="text-sm font-medium fill-text"
-              >
-                {wp.title}
-              </text>
-
               {/* AP Container (grauer Hintergrund-Box mit Padding) */}
               <rect
                 x={dateToX(wp.start)}
@@ -333,9 +326,18 @@ const Timeline: React.FC<TimelineProps> = ({
                 rx={8}
               />
 
+              {/* AP Label (ÜBER dem Container, an gleicher X-Position) */}
+              <text
+                x={dateToX(wp.start) + 8}
+                y={rowY + AP_LABEL_HEIGHT - 4}
+                className="text-sm font-medium fill-text"
+              >
+                {wp.title}
+              </text>
+
               {/* SubPackages (mit Padding innerhalb des Containers) */}
               {wp.subPackages.map((sp, spIndex) => {
-                const spY = containerY + AP_PADDING_VERTICAL + 10 + spIndex * (SUBBAR_HEIGHT + UAP_SPACING);
+                const spY = containerY + AP_PADDING_VERTICAL + spIndex * (SUBBAR_HEIGHT + UAP_SPACING);
                 const spX = Math.max(dateToX(wp.start) + AP_PADDING_HORIZONTAL, dateToX(sp.start));
                 const spEndX = Math.min(dateToX(wp.end) - AP_PADDING_HORIZONTAL, dateToX(sp.end));
                 const spWidth = Math.max(60, spEndX - spX);
@@ -406,7 +408,7 @@ const Timeline: React.FC<TimelineProps> = ({
         {/* Milestone Marker & Labels */}
         {milestones.map(ms => {
           const msX = dateToX(ms.date);
-          const markerY = totalHeight - 60; // Marker im unteren Bereich der Timeline
+          const markerY = totalHeight - MILESTONE_BOTTOM_OFFSET;
           const labelY = markerY + 4;
 
           return (
