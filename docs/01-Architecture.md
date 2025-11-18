@@ -1,8 +1,8 @@
-# Projekt Zeitplan - Systemarchitektur
+# Clarity First Timeline - Systemarchitektur
 
 ## Übersicht
 
-Projekt Zeitplan ist eine moderne React-Anwendung zur Verwaltung von Arbeitspaketen, Unterarbeitspaketen und Meilensteinen in einer interaktiven Gantt-Chart-Ansicht.
+Clarity First Timeline ist eine moderne React-Anwendung zur Verwaltung von Arbeitspaketen, Unterarbeitspaketen und Meilensteinen in einer interaktiven Gantt-Chart-Ansicht.
 
 ## Technologie-Stack
 

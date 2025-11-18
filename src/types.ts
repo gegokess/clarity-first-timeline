@@ -1,5 +1,5 @@
 /**
- * Type Definitions für Projekt Zeitplan
+ * Type Definitions für Clarity First Timeline
  * Basierend auf der Dokumentation in docs/02-DataModel.md
  */
 

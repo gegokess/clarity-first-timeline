@@ -1,6 +1,6 @@
-# Projekt Zeitplan
+# Clarity First Timeline
 
-Eine moderne React-Anwendung zur Verwaltung von Arbeitspaketen (AP), Unterarbeitspaketen (UAP) und Meilensteinen in einer interaktiven Gantt-Chart-Ansicht.
+Eine moderne React-Anwendung zur Verwaltung von Arbeitspaketen (AP), Unterarbeitspaketen (UAP) und Meilensteinen – inklusive professionellem Export gemäß dem „Clarity First“-Designleitfaden.
 
 ## Features
 

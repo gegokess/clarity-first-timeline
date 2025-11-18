@@ -1,7 +1,7 @@
 {
-  "name": "projekt-zeitplan",
+  "name": "clarity-first-timeline",
   "version": "1.0.0",
-  "description": "Moderne React-Anwendung zur Verwaltung von Arbeitspaketen in einer interaktiven Gantt-Chart-Ansicht",
+  "description": "Clarity First Timeline – moderne React-App für AP/UAP-Planung und formelle Exporte",
   "type": "module",
   "scripts": {
     "dev": "vite",
