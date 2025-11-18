@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Project, WorkPackage, SubPackage, Milestone, Toast } from '../types';
-import { today, minDate, maxDate, addDays } from '../utils/dateUtils';
+import { today, minDate, maxDate, addDays, clampDate } from '../utils/dateUtils';
 import { validateProject, logValidationErrors, logValidationWarnings, getProjectWarnings } from '../utils/devChecks';
 
 const STORAGE_KEY = 'projekt-zeitplan';
@@ -201,9 +201,21 @@ export function useProject() {
       if (wpIndex === -1) return prev;
 
       const wp = prev.workPackages[wpIndex];
+      
+      // Apply clamping if enabled and in manual mode
+      let finalStart = newSp.start;
+      let finalEnd = newSp.end;
+      
+      if (prev.settings.clampUapInsideManualAp && wp.mode === 'manual') {
+        finalStart = clampDate(finalStart, wp.start, wp.end);
+        finalEnd = clampDate(finalEnd, wp.start, wp.end);
+      }
+
+      const clampedSp = { ...newSp, start: finalStart, end: finalEnd };
+
       const updatedWp: WorkPackage = {
         ...wp,
-        subPackages: [...wp.subPackages, newSp],
+        subPackages: [...wp.subPackages, clampedSp],
       };
 
       const newWorkPackages = [...prev.workPackages];
@@ -230,7 +242,14 @@ export function useProject() {
       const spIndex = wp.subPackages.findIndex(sp => sp.id === uapId);
       if (spIndex === -1) return prev;
 
-      const updatedSp = { ...wp.subPackages[spIndex], ...updates };
+      let updatedSp = { ...wp.subPackages[spIndex], ...updates };
+      
+      // Apply clamping if enabled and in manual mode
+      if (prev.settings.clampUapInsideManualAp && wp.mode === 'manual' && (updates.start || updates.end)) {
+         updatedSp.start = clampDate(updatedSp.start, wp.start, wp.end);
+         updatedSp.end = clampDate(updatedSp.end, wp.start, wp.end);
+      }
+
       const newSubPackages = [...wp.subPackages];
       newSubPackages[spIndex] = updatedSp;
 

@@ -146,8 +146,8 @@ export function getQuarterString(isoDate: string): string {
  * Clampt ein Datum zwischen min und max
  */
 export function clampDate(isoDate: string, min: string, max: string): string {
-  if (daysBetween(isoDate, min) < 0) return min;
-  if (daysBetween(max, isoDate) < 0) return max;
+  if (daysBetween(min, isoDate) < 0) return min;
+  if (daysBetween(isoDate, max) < 0) return max;
   return isoDate;
 }
 
