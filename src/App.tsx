@@ -35,7 +35,7 @@ const App: React.FC = () => {
     importFromJSON,
   } = useProject();
 
-  const [zoomLevel, setZoomLevel] = useState<ZoomLevel>('month');
+  const [zoomLevel, setZoomLevel] = useState<ZoomLevel>('auto');
   const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   // PDF Export initialisieren

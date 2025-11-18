@@ -123,7 +123,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   };
 
   const zoomOptions: { value: ZoomLevel; label: string }[] = [
-    { value: 'week', label: 'Woche' },
+    { value: 'auto', label: 'Auto' },
     { value: 'month', label: 'Monat' },
     { value: 'quarter', label: 'Quartal' },
     { value: 'year', label: 'Jahr' },

@@ -46,6 +46,21 @@ Die App folgt dem Style Guide **"Clarity First"**: Dark-Mode-First, minimalistis
 - **Negativ** = Rot/Orange (Danger/Warning).  
 - **Neutral** = Layering über `surface -> panel -> panel-alt`.
 
+#### 2.1.1 Timeline-Phasenpalette (8 Akzentpaare)
+
+| Phase | AP (dunkler Ton) | UAP (Pastell) | Milestone |
+| :--- | :--- | :--- | :--- |
+| Discovery | `#1F4E79` | `#AEC9E6` | `#1F4E79` |
+| Definition | `#7C1F35` | `#F5B3C7` | `#7C1F35` |
+| Delivery | `#135C5C` | `#9ED8D6` | `#135C5C` |
+| Launch | `#6C3A00` | `#F3CDA8` | `#6C3A00` |
+| Enablement | `#5A2E6D` | `#DAB9F0` | `#5A2E6D` |
+| Scale | `#274653` | `#B6DCE2` | `#274653` |
+| Ops | `#7A4605` | `#EBC8A2` | `#7A4605` |
+| Sustain | `#1C5B34` | `#B7E2CA` | `#1C5B34` |
+
+**Prinzip:** APs nutzen den satten Farbton, UAPs denselben Farbton als Pastellvariante, Milestones spiegeln den AP-Ton für sofortige Hierarchie.
+
 ### 2.2 Typografie
 
 | Rolle | Größe | Weight | Einsatz |
@@ -140,6 +155,12 @@ Fonts: `Inter`, system-ui fallback. Zeilenhöhe 1.4-1.6.
   - Positive Zeiträume -> `accent-2` / Success.  
   - Kritische Daten -> `danger` Buttons, Warning Lines.  
 - **BNB (optional):** Aktiver Tab = gefülltes Icon + Accent, inaktive Outline.
+- **Auto Zoom:** Standard-Zoom-Level wählt anhand des Projektzeitraums automatisch zwischen Monat, Quartal oder Jahr. Schwellenwerte: ≤160 Tage → Monat, ≤320 Tage → Quartal, sonst Jahr. Padding: ±2 Tick-Abstände vor/nach dem ersten bzw. letzten Datum. Die Zoom-Auswahl bleibt beim Export erhalten.
+- **Pixel-Dichte:** Monat = 18 px/Tag, Quartal = 12 px/Tag, Jahr = 8 px/Tag. Damit werden lange Zeiträume sichtbar komprimiert, kurze Phasen dagegen großflächig dargestellt.
+- **Gantt Layout:** Timeline füllt den kompletten Content-Bereich rechts der Sidebar und ist immer horizontal scroll-/dragbar (`overflow-x: auto`). Der sichtbare Bereich umfasst nur Projekt-Start bis -Ende plus zwei Tick-Puffer, es gibt keine leeren Monate mehr.
+- **AP/UAP Positionierung:** AP-Balken sitzen oberhalb der UAP-Gruppe, sind ~40% so hoch wie UAPs und besitzen immer dieselben Start-/End-Koordinaten wie die aggregierten UAPs. AP-Titel stehen mittig über dem Balken, der Datumsbereich direkt darunter. UAP-Titel + Datum stehen rechts neben dem Balken und sind vertikal zum Balkenmittelpunkt ausgerichtet.
+- **Milestones:** Diamant mit Verbindungslinie, Label und Datum stehen rechts daneben (Datum unterhalb des Labels). Am unteren Rand existieren min. 60px Padding, damit jedes Symbol voll sichtbar bleibt.
+- **Rasterlinien:** Vertikale, hellgraue, gestrichelte Linien (Tick-Abstand) erscheinen sowohl in der App als auch im Export.
 
 ---
 
@@ -205,7 +226,71 @@ module.exports = {
 
 ---
 
-## 7. Versionierung
+## 7. Export Style - Professional Print & Presentation
+
+Dieser Modus wird automatisch aktiviert, sobald `preparePrintView()` aufgerufen wird (PDF/PNG Export). Die App fügt `body.print-mode` hinzu und alle Timeline-spezifischen Komponenten wechseln auf ein formal-drucktaugliches Theme.
+
+### 7.1 Prinzipien
+
+| Prinzip | Zielsetzung | Umsetzung |
+| :--- | :--- | :--- |
+| **Kontrast & Klarheit** | Statische Dokumente (PDF/Print) müssen ohne UI-Kontext lesbar sein. | Reiner Weißton (`#FFFFFF`) als Hintergrund, dunkle Typografie (`#333333`). |
+| **Formalität** | Seriosität für Angebote/Präsentationen. | Scharfe Kanten (`<=4px`), dezente Farben, Source Sans 3 / Inter als Schrift. |
+| **Struktur** | Timeline-Hierarchie sofort erfassen. | Hauptpakete in Navy (`#1C3F70`), Subpakete hell mit Outline, Milestones in Gold. |
+
+### 7.2 Layout & Komponenten
+
+- **Hintergrund / Raster:** Weißer Hintergrund, Rasterlinien `#C7CEDA` (0.75px) für bessere Sichtbarkeit im Druck, Achsenlinien `#333333`, identische gestrichelte Ticks wie in der Web-App.  
+- **Typografie:** `Source Sans 3`, 10-12pt, Titel bold (700), Meta-Text medium grau (#757575).  
+- **Arbeitspakete:** Schmale Balken (ca. 40 % der UAP-Höhe), `rx=4px`, **keine Fill-Farbe**, sondern Outline in der Phasenfarbe. Start- und Endkoordinaten entsprechen exakt dem ersten/letzten UAP des Pakets. Titel steht mittig **über** dem Balken, der Datumsrange direkt darunter.  
+- **Unterpakete:** Pastell-Füllung aus der Phasenpalette, Outline in der AP-Farbe, `rx=4px`, Labels + Daten stehen rechts neben dem Balken und sind vertikal zum Balkenmittelpunkt ausgerichtet.  
+- **Meilensteine:** Diamant + vertikale Referenzlinie teilen sich eine dedizierte Goldfarbe (`#DAA520`) und stehen optisch klar getrennt von den AP-/UAP-Farben. Datum steht unterhalb der Meilensteinbeschreibung. Am unteren Rand existiert Padding, damit Diamond + Text nicht abgeschnitten werden.  
+- **Abstände:** 8px vertikal zwischen UAP-Balken, AP sitzt unmittelbar oberhalb des UAP-Stacks; horizontales Padding 16px / Pufferzonen nur an den äußeren Timeline-Rändern.  
+- **Phasenfarben:** Es werden die acht Akzentpaare aus Abschnitt 2.1.1 genutzt (AP = dunkler Ton, UAP/Milestone = Pastell).  
+- **Hover/Tooltip:** Nur in der Web-App aktiv; Export liefert statischen Text.
+
+### 7.3 Farb- und Typ-Tokens für Print
+
+| Token | Wert |
+| :--- | :--- |
+| `--color-bg` | `#FFFFFF` |
+| `--color-surface` | `#FFFFFF` |
+| `--color-panel` | `#F6F7FA` |
+| `--color-panel-alt` | `#EEF1F7` |
+| `--color-border` | `#DADDE7` |
+| `--color-line` | `#E0E0E0` |
+| `--color-text` | `#333333` |
+| `--color-text-muted` | `#757575` |
+| `timeline.apStroke` | siehe Abschnitt 2.1.1 (dunkler Ton der Phase) |
+| `timeline.subFill` | siehe Abschnitt 2.1.1 (Pastell-Ton der Phase) |
+| `timeline.milestone` | `#DAA520` |
+
+**Implementation Notes**
+
+- `preparePrintView()` -> `body.print-mode` -> CSS Variablen + Komponenten switchen automatisch.  
+- `exportTimelineToPNG()` nutzt dieselbe Vorbereitung (weißer Hintergrund, formelles Theme).  
+- Timeline liest das Print-Flag über `usePrintMode()` und passt `rx`, Farben und Typografie serverseitig an.
+
+### 7.5 Export-Viewport & Zoom
+
+- Exportiert wird ausschließlich der Zeitraum zwischen Projektstart und -ende plus zwei Tick-Abständen Puffer. Der sichtbare Bereich schrumpft automatisch, wenn ein Projekt nur wenige Tage umfasst.  
+- Die aktuell gewählte Zoom-Stufe (Monat, Quartal, Jahr oder Auto → entsprechendes Preset) bestimmt auch im Export die Pixel-dichte pro Tag. Es gibt kein separates "Print-Zoom".  
+- Der resultierende SVG-Canvas deckt nur den genutzten Bereich ab, damit PNG/PDF keine leeren Monate oder breite Ränder enthalten. Ein moderater Außen-Padding (links/rechts 40px) bleibt für Lesbarkeit erhalten.  
+- Milestones, Raster und UAP-Ausrichtungen entsprechen visuell der Web-Variante, damit Screenshots und Exporte konsistent wirken.
+
+### 7.4 Vergleich UI vs. Export
+
+| Merkmal | UI-App (Clarity First) | Export (Professional Print) |
+| :--- | :--- | :--- |
+| Hintergrund | Dunkel (Night Sky) | Reinweiß |
+| Schrift | Inter 14-18px | Source Sans 3, 10-12pt |
+| Balkenfarbe | Farbige Panels + Gradient | Navy + dezente Sekundärtöne |
+| Radius | 12-16px | <=4px |
+| Zielsetzung | Interaktion, Fokus auf Aktionen | Druck, Glaubwürdigkeit, Dokumentation |
+
+---
+
+## 8. Versionierung
 
 - **Version:** 3.0 (Clarity First)  
 - **Stand:** 2025-11-18  

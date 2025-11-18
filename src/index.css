@@ -49,6 +49,20 @@
   --shadow-lg: 0 12px 40px rgba(16, 24, 40, 0.08);
 }
 
+body.print-mode {
+  --color-bg: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-panel: #F6F7FA;
+  --color-panel-alt: #EEF1F7;
+  --color-border: #DADDE7;
+  --color-line: #E0E0E0;
+  --color-text: #333333;
+  --color-text-muted: #757575;
+  font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+  color: #333333;
+  background-color: #FFFFFF;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -111,54 +125,108 @@ body {
   animation: slideIn 0.3s ease-out;
 }
 
-/* Print Styles - Nur Timeline anzeigen */
+/* Print Styles - Timeline Export */
+body.print-mode {
+  background: #FFFFFF !important;
+  color: #333333 !important;
+  font-size: 11pt;
+}
+
 @media print {
-  /* Verstecke alles außer Timeline */
+  body {
+    background: #FFFFFF !important;
+    color: #333333 !important;
+    font-size: 11pt;
+  }
+}
+
+body.print-mode header,
+body.print-mode nav,
+body.print-mode .toolbar-actions,
+body.print-mode button,
+body.print-mode .three-dot-menu,
+body.print-mode .no-print,
+body.print-mode .work-package-tree {
+  display: none !important;
+}
+
+@media print {
+  header,
+  nav,
   .toolbar-actions,
   button,
   .three-dot-menu,
-  nav,
-  header {
+  .no-print,
+  .work-package-tree {
     display: none !important;
   }
+}
 
-  /* Verstecke Sidebar (WorkPackageTree) */
-  .w-96 {
-    display: none !important;
+body.print-mode #root {
+  background: #FFFFFF;
+}
+
+@media print {
+  #root {
+    background: #FFFFFF;
   }
+}
 
-  /* Timeline auf volle Breite */
+body.print-mode .timeline-container {
+  width: 100% !important;
+  overflow: visible !important;
+  background: #FFFFFF !important;
+  padding: 0 !important;
+}
+
+@media print {
   .timeline-container {
     width: 100% !important;
     overflow: visible !important;
+    background: #FFFFFF !important;
+    padding: 0 !important;
   }
+}
 
-  /* Optimiere SVG für Druck */
-  .timeline-svg {
-    width: 100% !important;
-    height: auto !important;
-  }
 
-  /* Entferne Schatten */
+body.print-mode * {
+  box-shadow: none !important;
+}
+
+@media print {
   * {
     box-shadow: none !important;
   }
+}
 
-  /* Optimiere Text */
-  body {
-    font-size: 10pt;
-    background: white;
-    margin: 0;
-    padding: 10px;
-  }
+body.print-mode svg text {
+  fill: #333333 !important;
+  font-family: 'Source Sans 3', 'Inter', sans-serif !important;
+}
 
-  /* Seitenumbrüche vermeiden */
-  svg, .timeline-container {
-    page-break-inside: avoid;
+@media print {
+  svg text {
+    fill: #333333 !important;
+    font-family: 'Source Sans 3', 'Inter', sans-serif !important;
   }
+}
+
+body.print-mode svg line.export-grid {
+  stroke: #E0E0E0 !important;
+}
+
+@media print {
+  svg line.export-grid {
+    stroke: #E0E0E0 !important;
+  }
+}
+
+svg,
+.timeline-container {
+  page-break-inside: avoid;
 }
 
 @page {
   size: A4 landscape;
-  margin: 0.5cm;
+  margin: 1cm;
 }

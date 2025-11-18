@@ -49,7 +49,7 @@ const WorkPackageTree: React.FC<WorkPackageTreeProps> = ({
   };
 
   return (
-    <aside className="w-[360px] bg-surface/70 border-r border-line/60 backdrop-blur-md overflow-y-auto">
+    <aside className="work-package-tree w-[360px] bg-surface/70 border-r border-line/60 backdrop-blur-md overflow-y-auto">
       <div className="p-5 space-y-5">
         {/* WorkPackages Section */}
         {workPackages.length === 0 ? (

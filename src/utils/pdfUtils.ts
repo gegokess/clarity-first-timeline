@@ -3,6 +3,13 @@
  * Funktionen für den PDF-Export über Print-Dialog
  */
 
+const PRINT_MODE_EVENT = 'print-mode-change';
+
+const notifyPrintModeChange = (active: boolean) => {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(PRINT_MODE_EVENT, { detail: { active } }));
+};
+
 /**
  * Öffnet den Print-Dialog für PDF-Export
  * Die Anwendung sollte bereits print-friendly Styles haben (@media print)
@@ -16,8 +23,8 @@ export function exportToPDF(): void {
  * Kann verwendet werden, um vor dem Drucken bestimmte Elemente zu verstecken/anzeigen
  */
 export function preparePrintView(): void {
-  // Füge eine Print-Klasse zum body hinzu
   document.body.classList.add('print-mode');
+  notifyPrintModeChange(true);
 }
 
 /**
@@ -25,6 +32,7 @@ export function preparePrintView(): void {
  */
 export function restoreNormalView(): void {
   document.body.classList.remove('print-mode');
+  notifyPrintModeChange(false);
 }
 
 /**
@@ -149,23 +157,22 @@ export function cleanupPDFExport(): void {
  */
 export async function exportTimelineToPNG(): Promise<void> {
   try {
-    // Dynamischer Import von html-to-image
+    preparePrintView();
+    await new Promise(resolve => setTimeout(resolve, 150));
+
     const { toPng } = await import('html-to-image');
 
-    // Finde das SVG-Element
     const svgElement = document.getElementById('gantt-chart-svg');
     if (!svgElement) {
       throw new Error('Timeline SVG nicht gefunden');
     }
 
-    // Konvertiere zu PNG
     const dataUrl = await toPng(svgElement, {
       quality: 1.0,
-      pixelRatio: 2, // Höhere Auflösung
+      pixelRatio: 2,
       backgroundColor: '#ffffff',
     });
 
-    // Download-Link erstellen
     const link = document.createElement('a');
     link.download = `gantt-chart-${new Date().toISOString().split('T')[0]}.png`;
     link.href = dataUrl;
@@ -175,5 +182,7 @@ export async function exportTimelineToPNG(): Promise<void> {
   } catch (error) {
     console.error('Fehler beim PNG-Export:', error);
     throw error;
+  } finally {
+    restoreNormalView();
   }
 }
