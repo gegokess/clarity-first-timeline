@@ -292,7 +292,7 @@ Dieser Modus wird automatisch aktiviert, sobald `preparePrintView()` aufgerufen 
 
 ## 8. Versionierung
 
-- **Version:** 3.0 (Clarity First)  
+- **Version:** 1.0 (Clarity First Release)  
 - **Stand:** 2025-11-18  
 - **Verantwortung:** Design & Frontend Team (Codex + Projektzeitplan)
 

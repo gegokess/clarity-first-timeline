@@ -15,7 +15,7 @@ Eine moderne React-Anwendung zur Verwaltung von Arbeitspaketen (AP), Unterarbeit
 ### Moderne UI/UX
 - **Design System**: Konsistente Farben, Typography und Spacing
 - **Moderne UAP-Cards**: Farbige Balken, Kategorien, Avatar-System
-- **4 Zoom-Levels**: Woche, Monat, Quartal, Jahr
+- **Intelligenter Zoom**: Auto-Modus wählt Monat/Quartal/Jahr anhand des Projektumfangs; Presets für Monat, Quartal, Jahr stehen weiterhin bereit
 - **Toast-Benachrichtigungen**: Feedback für Benutzeraktionen
 - **Responsive Layout**: Toolbar, Sidebar und Timeline
 
@@ -105,7 +105,7 @@ docs/                   # Umfassende Dokumentation
 ### Timeline-Interaktion
 - **Verschieben**: UAP auf Timeline ziehen
 - **Dauer ändern**: An Handles links/rechts ziehen
-- **Zoom**: Woche/Monat/Quartal/Jahr wählen
+- **Zoom**: Auto, Monat, Quartal oder Jahr wählen
 - **Details**: Mit Maus über UAP hovern
 
 ### Meilensteine
@@ -158,6 +158,13 @@ Im **Manual-Modus**:
 - Edge
 
 **Hinweis**: SVG `foreignObject` wird für moderne Layouts verwendet - funktioniert nur in aktuellen Browsern.
+
+## Release 1.0
+
+- **Clarity First UI:** Überarbeitete Dark-Mode-Oberfläche mit vereinheitlichten Tokens.
+- **Print-Ready Export:** Professioneller Print-Style mit weißem Hintergrund, dedizierten Milestone-Farben und dynamischem Viewport.
+- **Auto Zoom:** Neues Auto-Level ermittelt die passende Skalierung aus Projektstart/-ende und respektiert die Auswahl beim Export.
+- **Verbesserte Timeline:** AP/UAP-Layout folgt einer klaren Hierarchie, Milestones besitzen konsistente Farben und die Exportansicht schneidet automatisch auf den Projektbereich zu.
 
 ## Lizenz
 
