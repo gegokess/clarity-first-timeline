@@ -3,25 +3,27 @@
 @tailwind utilities;
 
 :root {
-  /* Neutrals */
-  --color-bg: #FFFFFF;
-  --color-surface: #F6F7F9;
-  --color-border: #E9ECF1;
-  --color-line: #EEF1F5;
-  --color-text: #1E2430;
-  --color-text-muted: #6B7280;
+  /* Base */
+  --color-bg: #030712;
+  --color-surface: #0C1220;
+  --color-panel: #151C2F;
+  --color-panel-alt: #1B243C;
+  --color-border: #222C44;
+  --color-line: #25335B;
+  --color-text: #F4F7FB;
+  --color-text-muted: #94A3C5;
 
   /* Semantic */
-  --color-success: #38C77A;
-  --color-warning: #FF8A3D;
-  --color-danger: #F05252;
-  --color-info: #4C6EF5;
+  --color-success: #43F5C0;
+  --color-warning: #FACC15;
+  --color-danger: #FF6574;
+  --color-info: #5F8BFF;
 
   /* Accents */
-  --color-accent-1: #8A7CF6;
-  --color-accent-2: #EA7AF6;
-  --color-accent-3: #FDB36A;
-  --gradient-accent: linear-gradient(90deg, #8A7CF6 0%, #EA7AF6 55%, #FDB36A 100%);
+  --color-accent-1: #6E7EFF;
+  --color-accent-2: #49E9FF;
+  --color-accent-3: #5DE1A4;
+  --gradient-accent: linear-gradient(120deg, #6E7EFF 0%, #49E9FF 45%, #5DE1A4 100%);
 
   /* Spacing (8-point grid) */
   --space-1: 4px;
@@ -59,8 +61,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--color-bg);
   color: var(--color-text);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
 #root {

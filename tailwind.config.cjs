@@ -10,24 +10,21 @@ module.exports = {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
-        // Neutrals
-        'bg': '#FFFFFF',
-        'surface': '#F6F7F9',
-        'border': '#E9ECF1',
-        'line': '#EEF1F5',
-        'text': '#1E2430',
-        'text-muted': '#6B7280',
-
-        // Semantic
-        'success': '#38C77A',
-        'warning': '#FF8A3D',
-        'danger': '#F05252',
-        'info': '#4C6EF5',
-
-        // Accents
-        'accent-1': '#8A7CF6',
-        'accent-2': '#EA7AF6',
-        'accent-3': '#FDB36A',
+        bg: '#030712',
+        surface: '#0C1220',
+        panel: '#151C2F',
+        'panel-alt': '#1B243C',
+        border: '#222C44',
+        line: '#25335B',
+        text: '#F4F7FB',
+        'text-muted': '#94A3C5',
+        success: '#43F5C0',
+        warning: '#FACC15',
+        danger: '#FF6574',
+        info: '#5F8BFF',
+        'accent-1': '#6E7EFF',
+        'accent-2': '#49E9FF',
+        'accent-3': '#5DE1A4',
       },
       spacing: {
         '1': '4px',
@@ -48,9 +45,12 @@ module.exports = {
         'full': '9999px',
       },
       boxShadow: {
-        'sm': '0 1px 2px rgba(16, 24, 40, 0.05)',
-        'md': '0 6px 24px rgba(16, 24, 40, 0.06)',
-        'lg': '0 12px 40px rgba(16, 24, 40, 0.08)',
+        sm: '0 2px 4px rgba(10, 12, 21, 0.4)',
+        md: '0 15px 35px rgba(5, 10, 25, 0.35)',
+        lg: '0 30px 60px rgba(5, 10, 25, 0.45)',
+      },
+      backgroundImage: {
+        'accent-gradient': 'linear-gradient(120deg, #6E7EFF 0%, #49E9FF 45%, #5DE1A4 100%)',
       },
     },
   },

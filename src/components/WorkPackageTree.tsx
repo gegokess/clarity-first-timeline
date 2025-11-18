@@ -49,8 +49,8 @@ const WorkPackageTree: React.FC<WorkPackageTreeProps> = ({
   };
 
   return (
-    <div className="w-96 bg-surface border-r border-border overflow-y-auto">
-      <div className="p-4 space-y-4">
+    <aside className="w-[360px] bg-surface/70 border-r border-line/60 backdrop-blur-md overflow-y-auto">
+      <div className="p-5 space-y-5">
         {/* WorkPackages Section */}
         {workPackages.length === 0 ? (
           <div className="text-center py-12 text-text-muted">
@@ -78,7 +78,7 @@ const WorkPackageTree: React.FC<WorkPackageTreeProps> = ({
 
         {/* Milestones Section */}
         {(workPackages.length > 0 || milestones.length > 0) && (
-          <div className="border-t border-border pt-4">
+          <div className="border-t border-line/60 pt-4">
             <MilestoneList
               milestones={milestones}
               onUpdate={onUpdateMilestone}
@@ -87,7 +87,7 @@ const WorkPackageTree: React.FC<WorkPackageTreeProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </aside>
   );
 };
 
@@ -138,14 +138,14 @@ const WorkPackageCard: React.FC<WorkPackageCardProps> = ({
   const hasSubPackages = workPackage.subPackages.length > 0;
 
   return (
-    <div className="bg-white rounded-md shadow-sm border border-border">
+    <div className="bg-panel rounded-2xl border border-line/70 shadow-lg shadow-black/30">
       {/* Header */}
-      <div className="p-3 border-b border-border">
+      <div className="p-4 border-b border-line/60">
         <div className="flex items-center gap-2 mb-3">
           {/* Expand/Collapse Button */}
           <button
             onClick={onToggleExpanded}
-            className="p-1 hover:bg-surface rounded transition-colors"
+            className="p-1.5 hover:bg-panel-alt rounded-xl transition-colors"
             aria-label={isExpanded ? 'Einklappen' : 'Ausklappen'}
           >
             <svg
@@ -167,11 +167,11 @@ const WorkPackageCard: React.FC<WorkPackageCardProps> = ({
               onBlur={handleTitleSave}
               onKeyDown={handleTitleKeyDown}
               autoFocus
-              className="flex-1 text-sm font-medium text-text px-2 py-1 border border-info rounded focus:outline-none focus:ring-1 focus:ring-info"
+              className="flex-1 text-sm font-medium text-text px-3 py-1.5 bg-panel-alt/80 border border-line/60 rounded-xl focus:border-info focus:outline-none"
             />
           ) : (
             <h3
-              className="flex-1 text-sm font-medium text-text cursor-pointer hover:text-info transition-colors"
+              className="flex-1 text-sm font-semibold text-text cursor-pointer hover:text-info transition-colors"
               onClick={() => setIsEditingTitle(true)}
               title="Klicken zum Bearbeiten"
             >
@@ -186,7 +186,7 @@ const WorkPackageCard: React.FC<WorkPackageCardProps> = ({
                 onDelete();
               }
             }}
-            className="p-1 text-danger hover:bg-danger hover:bg-opacity-10 rounded transition-colors"
+            className="p-1.5 text-danger hover:bg-danger hover:bg-opacity-20 rounded-xl transition-colors"
             aria-label="Löschen"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,14 +198,14 @@ const WorkPackageCard: React.FC<WorkPackageCardProps> = ({
         {/* Mode Toggle */}
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs text-text-muted">Modus:</span>
-          <div className="flex gap-1 bg-surface rounded p-0.5">
+          <div className="flex gap-1 bg-panel-alt/80 rounded-full p-0.5 border border-line/60">
             <button
               onClick={() => onUpdate({ mode: 'auto' })}
               disabled={!hasSubPackages}
               className={`
-                px-2 py-1 text-xs rounded transition-colors
+                px-3 py-1 text-xs rounded-full transition-all
                 ${isAutoMode
-                  ? 'bg-white text-info font-medium shadow-sm'
+                  ? 'bg-accent-gradient text-white font-semibold shadow-md'
                   : 'text-text-muted hover:text-text'
                 }
                 ${!hasSubPackages ? 'opacity-50 cursor-not-allowed' : ''}
@@ -217,9 +217,9 @@ const WorkPackageCard: React.FC<WorkPackageCardProps> = ({
             <button
               onClick={() => onUpdate({ mode: 'manual' })}
               className={`
-                px-2 py-1 text-xs rounded transition-colors
+                px-3 py-1 text-xs rounded-full transition-all
                 ${!isAutoMode
-                  ? 'bg-white text-info font-medium shadow-sm'
+                  ? 'bg-accent-gradient text-white font-semibold shadow-md'
                   : 'text-text-muted hover:text-text'
                 }
               `}
@@ -239,7 +239,7 @@ const WorkPackageCard: React.FC<WorkPackageCardProps> = ({
                 type="date"
                 value={workPackage.start}
                 onChange={e => onUpdate({ start: e.target.value })}
-                className="w-full text-xs px-2 py-1 border border-border rounded focus:outline-none focus:ring-1 focus:ring-info"
+                className="w-full text-xs px-3 py-2 bg-panel-alt/70 border border-line/60 rounded-lg focus:border-info focus:outline-none"
               />
             </div>
             <div>
@@ -248,7 +248,7 @@ const WorkPackageCard: React.FC<WorkPackageCardProps> = ({
                 type="date"
                 value={workPackage.end}
                 onChange={e => onUpdate({ end: e.target.value })}
-                className="w-full text-xs px-2 py-1 border border-border rounded focus:outline-none focus:ring-1 focus:ring-info"
+                className="w-full text-xs px-3 py-2 bg-panel-alt/70 border border-line/60 rounded-lg focus:border-info focus:outline-none"
               />
             </div>
           </div>
@@ -267,7 +267,7 @@ const WorkPackageCard: React.FC<WorkPackageCardProps> = ({
 
       {/* SubPackages */}
       {isExpanded && (
-        <div className="p-3 space-y-2">
+        <div className="p-4 space-y-3">
           {workPackage.subPackages.map(sp => (
             <SubPackageCard
               key={sp.id}
@@ -280,7 +280,7 @@ const WorkPackageCard: React.FC<WorkPackageCardProps> = ({
           {/* Add SubPackage Button */}
           <button
             onClick={onAddSubPackage}
-            className="w-full py-2 border border-dashed border-border rounded-md text-sm text-text-muted hover:text-info hover:border-info transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 border border-dashed border-line/70 rounded-xl text-sm text-text-muted hover:text-info hover:border-info transition-colors flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

@@ -48,13 +48,13 @@ const SubPackageCard: React.FC<SubPackageCardProps> = ({ subPackage, onUpdate, o
 
   return (
     <div
-      className="bg-white rounded-md shadow-sm border border-border overflow-hidden h-full"
+      className="bg-panel-alt/70 rounded-2xl shadow-lg shadow-black/30 border border-line/70 overflow-hidden h-full"
       style={{ minWidth: '200px' }}
     >
       {/* Content */}
-      <div className="p-3 flex flex-col gap-2">
+      <div className="p-4 flex flex-col gap-3">
         {/* Header mit Titel und Papierkorb */}
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
           {isEditingTitle ? (
             <input
               ref={titleInputRef}
@@ -63,11 +63,11 @@ const SubPackageCard: React.FC<SubPackageCardProps> = ({ subPackage, onUpdate, o
               onChange={e => setTitleValue(e.target.value)}
               onBlur={handleTitleSave}
               onKeyDown={handleTitleKeyDown}
-              className="flex-1 text-sm font-medium text-text px-1 py-0.5 border border-info rounded focus:outline-none focus:ring-1 focus:ring-info"
+              className="flex-1 text-sm font-medium text-text px-2 py-1 bg-panel border border-line/60 rounded-xl focus:border-info focus:outline-none"
             />
           ) : (
             <h4
-              className="flex-1 text-sm font-medium text-text cursor-pointer hover:text-info transition-colors"
+              className="flex-1 text-sm font-semibold text-text cursor-pointer hover:text-info transition-colors"
               onClick={() => setIsEditingTitle(true)}
               title="Klicken zum Bearbeiten"
             >
@@ -82,7 +82,7 @@ const SubPackageCard: React.FC<SubPackageCardProps> = ({ subPackage, onUpdate, o
                 onDelete();
               }
             }}
-            className="p-1 text-danger hover:bg-danger hover:bg-opacity-10 rounded transition-colors"
+            className="p-1.5 text-danger hover:bg-danger hover:bg-opacity-20 rounded-xl transition-colors"
             aria-label="Löschen"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,8 +92,15 @@ const SubPackageCard: React.FC<SubPackageCardProps> = ({ subPackage, onUpdate, o
         </div>
 
         {/* Datum-Bereich */}
-        <div className="text-xs text-text-muted">
-          {formatDate(subPackage.start, 'short')} - {formatDate(subPackage.end, 'short')}
+        <div className="flex items-center justify-between text-xs text-text-muted">
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-accent-2" />
+            {formatDate(subPackage.start, 'short')}
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-accent-3" />
+            {formatDate(subPackage.end, 'short')}
+          </span>
         </div>
       </div>
     </div>

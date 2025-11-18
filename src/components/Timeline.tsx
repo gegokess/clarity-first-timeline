@@ -231,7 +231,7 @@ const Timeline: React.FC<TimelineProps> = ({
   };
 
   return (
-    <div className="timeline-container flex-1 overflow-auto bg-white">
+    <div className="timeline-container flex-1 overflow-auto bg-surface">
       <svg
         ref={svgRef}
         width={viewWidth}
@@ -252,6 +252,7 @@ const Timeline: React.FC<TimelineProps> = ({
             y2={totalHeight}
             stroke="var(--color-line)"
             strokeWidth={1}
+            strokeDasharray="2 6"
           />
         ))}
 
@@ -262,7 +263,7 @@ const Timeline: React.FC<TimelineProps> = ({
             y={0}
             width={viewWidth}
             height={HEADER_HEIGHT}
-            fill="var(--color-surface)"
+            fill="var(--color-panel)"
           />
           {timeTicks.map(tick => (
             <text
@@ -270,7 +271,8 @@ const Timeline: React.FC<TimelineProps> = ({
               x={tick.x}
               y={HEADER_HEIGHT - 20}
               textAnchor="middle"
-              className="text-xs fill-text-muted"
+              fill="var(--color-text-muted)"
+              fontSize={12}
             >
               {tick.label}
             </text>
@@ -280,7 +282,7 @@ const Timeline: React.FC<TimelineProps> = ({
             y1={HEADER_HEIGHT}
             x2={viewWidth}
             y2={HEADER_HEIGHT}
-            stroke="var(--color-border)"
+            stroke="var(--color-line)"
             strokeWidth={1}
           />
         </g>
@@ -320,17 +322,19 @@ const Timeline: React.FC<TimelineProps> = ({
                 y={containerY}
                 width={Math.max(20, dateToX(wp.end) - dateToX(wp.start))}
                 height={containerHeight}
-                fill="var(--color-surface)"
-                stroke="var(--color-border)"
+                fill="var(--color-panel)"
+                stroke="var(--color-line)"
                 strokeWidth={1}
-                rx={8}
+                rx={12}
               />
 
               {/* AP Label (ÜBER dem Container, an gleicher X-Position) */}
               <text
-                x={dateToX(wp.start) + 8}
-                y={rowY + AP_LABEL_HEIGHT - 4}
-                className="text-sm font-medium fill-text"
+                x={dateToX(wp.start) + 12}
+                y={rowY + AP_LABEL_HEIGHT - 6}
+                fill="var(--color-text)"
+                fontSize={13}
+                fontWeight={600}
               >
                 {wp.title}
               </text>
@@ -354,7 +358,7 @@ const Timeline: React.FC<TimelineProps> = ({
                       style={{ cursor: dragState ? 'grabbing' : 'grab' }}
                     >
                       <div
-                        className="h-full bg-white rounded border border-border shadow-sm flex items-center px-2 hover:shadow-md transition-shadow"
+                        className="h-full bg-panel-alt rounded-xl border border-line/70 shadow-lg shadow-black/30 flex items-center px-3 hover:border-info/70 transition-colors"
                         onMouseEnter={e => {
                           const rect = e.currentTarget.getBoundingClientRect();
                           setTooltip({
@@ -420,7 +424,9 @@ const Timeline: React.FC<TimelineProps> = ({
               <text
                 x={msX + 12}
                 y={labelY}
-                className="text-xs font-medium fill-warning"
+                fill="var(--color-warning)"
+                fontSize={12}
+                fontWeight={600}
               >
                 {ms.title}
               </text>
@@ -432,7 +438,7 @@ const Timeline: React.FC<TimelineProps> = ({
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="fixed bg-text text-white text-xs px-3 py-2 rounded shadow-lg whitespace-pre-line pointer-events-none z-50"
+          className="fixed bg-panel-alt text-white text-xs px-3 py-2 rounded-xl border border-line/70 shadow-lg whitespace-pre-line pointer-events-none z-50"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
           {tooltip.content}

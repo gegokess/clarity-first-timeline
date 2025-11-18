@@ -76,7 +76,7 @@ const App: React.FC = () => {
 
   return (
     <div
-      className="flex flex-col h-screen bg-bg"
+      className="flex flex-col h-screen bg-bg text-text"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -107,7 +107,7 @@ const App: React.FC = () => {
       />
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(111,126,255,0.12),_transparent_45%)]">
         {/* WorkPackage Tree Sidebar */}
         <WorkPackageTree
           workPackages={project.workPackages}
@@ -139,12 +139,13 @@ const App: React.FC = () => {
 
       {/* Drag & Drop Overlay */}
       {isDraggingFile && (
-        <div className="fixed inset-0 bg-info bg-opacity-20 flex items-center justify-center z-50 pointer-events-none">
-          <div className="bg-white rounded-lg shadow-lg p-8 border-2 border-dashed border-info">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 pointer-events-none">
+          <div className="bg-panel-alt rounded-3xl shadow-2xl p-8 border-2 border-dashed border-info/60 text-center">
             <svg className="w-16 h-16 mx-auto mb-4 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            <p className="text-lg font-medium text-info">JSON-Datei hier ablegen</p>
+            <p className="text-lg font-semibold text-info">JSON-Datei hier ablegen</p>
+            <p className="text-sm text-text-muted mt-2">Wir importieren automatisch nach dem Upload</p>
           </div>
         </div>
       )}

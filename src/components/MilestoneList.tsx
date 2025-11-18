@@ -45,10 +45,10 @@ const MilestoneList: React.FC<MilestoneListProps> = ({ milestones, onUpdate, onD
   };
 
   return (
-    <div className="bg-white rounded-md shadow-sm border border-border">
+    <div className="bg-panel rounded-2xl shadow-lg shadow-black/30 border border-line/70">
       {/* Header */}
       <div
-        className="p-3 border-b border-border flex items-center justify-between cursor-pointer hover:bg-surface transition-colors"
+        className="p-4 border-b border-line/60 flex items-center justify-between cursor-pointer hover:bg-panel-alt transition-colors rounded-t-2xl"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2">
@@ -60,14 +60,14 @@ const MilestoneList: React.FC<MilestoneListProps> = ({ milestones, onUpdate, onD
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-          <h3 className="text-sm font-medium text-text">Meilensteine</h3>
+          <h3 className="text-sm font-semibold text-text">Meilensteine</h3>
           <span className="text-xs text-text-muted">({milestones.length})</span>
         </div>
       </div>
 
       {/* Milestone List */}
       {isExpanded && (
-        <div className="p-3 space-y-2">
+        <div className="p-4 space-y-3">
           {milestones.length === 0 ? (
             <div className="text-center py-6 text-text-muted">
               <svg className="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,7 +79,7 @@ const MilestoneList: React.FC<MilestoneListProps> = ({ milestones, onUpdate, onD
             milestones.map(ms => (
               <div
                 key={ms.id}
-                className="bg-surface rounded-md p-3 border border-border hover:border-warning transition-colors"
+                className="bg-panel-alt/70 rounded-2xl p-4 border border-line/70 hover:border-warning transition-colors"
               >
                 {editingId === ms.id ? (
                   // Edit Mode
@@ -90,7 +90,7 @@ const MilestoneList: React.FC<MilestoneListProps> = ({ milestones, onUpdate, onD
                       onChange={e => setEditTitle(e.target.value)}
                       onKeyDown={handleKeyDown}
                       autoFocus
-                      className="w-full text-sm font-medium px-2 py-1 border border-info rounded focus:outline-none focus:ring-1 focus:ring-info"
+                      className="w-full text-sm font-medium px-3 py-2 bg-panel border border-line/60 rounded-xl focus:border-info focus:outline-none"
                       placeholder="Meilenstein-Titel"
                     />
                     <input
@@ -98,18 +98,18 @@ const MilestoneList: React.FC<MilestoneListProps> = ({ milestones, onUpdate, onD
                       value={editDate}
                       onChange={e => setEditDate(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="w-full text-xs px-2 py-1 border border-border rounded focus:outline-none focus:ring-1 focus:ring-info"
+                      className="w-full text-xs px-3 py-2 bg-panel border border-line/60 rounded-xl focus:border-info focus:outline-none"
                     />
                     <div className="flex gap-2">
                       <button
                         onClick={handleEditSave}
-                        className="flex-1 px-3 py-1 bg-info text-white text-xs rounded hover:bg-opacity-90 transition-colors"
+                        className="flex-1 px-3 py-2 bg-accent-gradient text-white text-xs rounded-xl hover:shadow-lg transition-all"
                       >
                         Speichern
                       </button>
                       <button
                         onClick={handleEditCancel}
-                        className="flex-1 px-3 py-1 bg-surface text-text-muted text-xs rounded hover:bg-border transition-colors"
+                        className="flex-1 px-3 py-2 bg-panel text-text-muted text-xs rounded-xl hover:text-white transition-colors"
                       >
                         Abbrechen
                       </button>
@@ -131,7 +131,7 @@ const MilestoneList: React.FC<MilestoneListProps> = ({ milestones, onUpdate, onD
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleEditStart(ms)}
-                        className="p-1 text-info hover:bg-white rounded transition-colors"
+                        className="p-1.5 text-info hover:bg-panel rounded-xl transition-colors"
                         title="Bearbeiten"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,7 +144,7 @@ const MilestoneList: React.FC<MilestoneListProps> = ({ milestones, onUpdate, onD
                             onDelete(ms.id);
                           }
                         }}
-                        className="p-1 text-danger hover:bg-white rounded transition-colors"
+                        className="p-1.5 text-danger hover:bg-panel rounded-xl transition-colors"
                         title="Löschen"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

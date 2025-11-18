@@ -31,15 +31,20 @@ interface ToastItemProps {
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
   const { id, type, message } = toast;
 
-  // Farbe basierend auf Type
-  const colorClasses = {
-    success: 'bg-success text-white',
-    error: 'bg-danger text-white',
-    warning: 'bg-warning text-white',
-    info: 'bg-info text-white',
-  };
+  const accentBar = {
+    success: 'bg-success',
+    error: 'bg-danger',
+    warning: 'bg-warning',
+    info: 'bg-info',
+  } as const;
 
-  // Icon basierend auf Type
+  const iconColor = {
+    success: 'text-success',
+    error: 'text-danger',
+    warning: 'text-warning',
+    info: 'text-info',
+  } as const;
+
   const icons = {
     success: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,22 +70,20 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
 
   return (
     <div
-      className={`
-        ${colorClasses[type]}
-        rounded-md shadow-lg
-        px-4 py-3
-        flex items-center gap-3
-        min-w-[320px] max-w-[480px]
-        pointer-events-auto
-        animate-slideIn
-      `}
+      className="
+        relative overflow-hidden rounded-2xl border border-line/70 bg-panel-alt/90
+        shadow-lg shadow-black/40 backdrop-blur
+        pl-5 pr-4 py-3 flex items-center gap-3
+        min-w-[320px] max-w-[480px] pointer-events-auto animate-slideIn text-white
+      "
       role="alert"
     >
-      <div className="flex-shrink-0">{icons[type]}</div>
+      <span className={`absolute inset-y-0 left-0 w-1 ${accentBar[type]}`} />
+      <div className={`flex-shrink-0 ${iconColor[type]}`}>{icons[type]}</div>
       <div className="flex-1 text-sm font-medium">{message}</div>
       <button
         onClick={() => onRemove(id)}
-        className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity"
+        className="flex-shrink-0 text-text-muted hover:text-white transition-colors"
         aria-label="Schließen"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
