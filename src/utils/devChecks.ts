@@ -115,6 +115,11 @@ export function validateProject(project: Project): string[] {
 
   if (!project.settings) {
     errors.push('Project Settings sind erforderlich');
+  } else {
+    // Validiere Settings Inhalt
+    if (typeof project.settings.clampUapInsideManualAp !== 'boolean') {
+      errors.push('Project Settings: clampUapInsideManualAp muss ein Boolean sein');
+    }
   }
 
   // Validiere alle WorkPackages

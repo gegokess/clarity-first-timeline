@@ -88,17 +88,26 @@ const Timeline: React.FC<TimelineProps> = ({
   projectStart,
   projectEnd,
   onUpdateSubPackage,
+  onUpdateMilestone,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewWidth, setViewWidth] = useState(1200);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: string } | null>(null);
   const [dragState, setDragState] = useState<{
-    type: 'move' | 'resize-left' | 'resize-right';
-    wpId: string;
-    spId: string;
-    originalStart: string;
-    originalEnd: string;
+    type: 'move' | 'resize-left' | 'resize-right' | 'move-milestone';
+    // Für UAPs
+    wpId?: string;
+    spId?: string;
+    originalStart?: string;
+    originalEnd?: string;
+    currentStart?: string; // Temporärer Zustand während Drag
+    currentEnd?: string;   // Temporärer Zustand während Drag
+    // Für Meilensteine
+    msId?: string;
+    originalDate?: string;
+    currentDate?: string;  // Temporärer Zustand während Drag
+    // Gemeinsam
     startX: number;
   } | null>(null);
 
@@ -143,7 +152,7 @@ const Timeline: React.FC<TimelineProps> = ({
   const activePreset = determinePreset(zoomLevel, timelineSpanDays);
   const zoomConfig = ZOOM_CONFIGS[activePreset];
 
-  const paddingDays = Math.max(zoomConfig.tickDays * 2, 14);
+  const paddingDays = Math.max(zoomConfig.tickDays, 7);
   const effectiveViewStart = addDays(timelineBounds.min, -paddingDays);
   const effectiveViewEnd = addDays(timelineBounds.max, paddingDays);
   const effectiveViewDays = Math.max(1, daysBetween(effectiveViewStart, effectiveViewEnd));
@@ -158,7 +167,7 @@ const Timeline: React.FC<TimelineProps> = ({
     SUBBAR_HEIGHT,
     UAP_SPACING,
     ROW_PADDING,
-    HEADER_HEIGHT,
+    HEADER_HEIGHT: DEFAULT_HEADER_HEIGHT,
     PADDING_LEFT,
     PADDING_TOP,
     PADDING_BOTTOM,
@@ -171,6 +180,7 @@ const Timeline: React.FC<TimelineProps> = ({
   const subBarHeight = isPrintMode ? SUBBAR_HEIGHT - 6 : SUBBAR_HEIGHT;
   const apBarHeight = isPrintMode ? Math.max(6, subBarHeight * 0.45) : Math.max(10, subBarHeight * 0.6);
   const subStackSpacing = isPrintMode ? Math.max(4, UAP_SPACING - 4) : UAP_SPACING;
+  const HEADER_HEIGHT = isPrintMode ? 50 : DEFAULT_HEADER_HEIGHT;
 
   const dateToX = (date: string): number => {
     const days = daysBetween(effectiveViewStart, date);
@@ -265,10 +275,9 @@ const Timeline: React.FC<TimelineProps> = ({
 
   const handleMouseDown = (
     e: React.MouseEvent,
-    type: 'move' | 'resize-left' | 'resize-right',
-    wpId: string,
-    spId: string,
-    sp: SubPackage
+    type: 'move' | 'resize-left' | 'resize-right' | 'move-milestone',
+    idObj: { wpId?: string; spId?: string; msId?: string },
+    initialData: { start?: string; end?: string; date?: string }
   ) => {
     e.stopPropagation();
     const svgRect = svgRef.current?.getBoundingClientRect();
@@ -276,10 +285,15 @@ const Timeline: React.FC<TimelineProps> = ({
 
     setDragState({
       type,
-      wpId,
-      spId,
-      originalStart: sp.start,
-      originalEnd: sp.end,
+      wpId: idObj.wpId,
+      spId: idObj.spId,
+      msId: idObj.msId,
+      originalStart: initialData.start,
+      originalEnd: initialData.end,
+      currentStart: initialData.start,
+      currentEnd: initialData.end,
+      originalDate: initialData.date,
+      currentDate: initialData.date,
       startX: e.clientX - svgRect.left,
     });
   };
@@ -294,7 +308,20 @@ const Timeline: React.FC<TimelineProps> = ({
     const deltaX = currentX - dragState.startX;
     const deltaDays = Math.round(deltaX / dayPixel);
 
-    const { wpId, spId, originalStart, originalEnd, type } = dragState;
+    const { type } = dragState;
+
+    if (type === 'move-milestone') {
+      const { originalDate } = dragState;
+      if (originalDate) {
+        const newDate = addDays(originalDate, deltaDays);
+        setDragState(prev => prev ? { ...prev, currentDate: newDate } : null);
+      }
+      return;
+    }
+
+    // UAP Logic
+    const { wpId, originalStart, originalEnd } = dragState;
+    if (!originalStart || !originalEnd) return;
 
     let newStart = originalStart;
     let newEnd = originalEnd;
@@ -314,7 +341,7 @@ const Timeline: React.FC<TimelineProps> = ({
       }
     }
 
-    if (clampingEnabled) {
+    if (clampingEnabled && wpId) {
       const wp = workPackages.find(w => w.id === wpId);
       if (wp && wp.mode === 'manual') {
         newStart = clampDate(newStart, wp.start, wp.end);
@@ -322,10 +349,21 @@ const Timeline: React.FC<TimelineProps> = ({
       }
     }
 
-    onUpdateSubPackage(wpId, spId, { start: newStart, end: newEnd });
+    // Update local drag state only, do not commit to parent yet
+    setDragState(prev => prev ? { ...prev, currentStart: newStart, currentEnd: newEnd } : null);
   };
 
   const handleMouseUp = () => {
+    if (!dragState) return;
+
+    const { type, wpId, spId, msId, currentStart, currentEnd, currentDate } = dragState;
+
+    if (type === 'move-milestone' && msId && currentDate && onUpdateMilestone) {
+      onUpdateMilestone(msId, { date: currentDate });
+    } else if (wpId && spId && currentStart && currentEnd) {
+      onUpdateSubPackage(wpId, spId, { start: currentStart, end: currentEnd });
+    }
+
     setDragState(null);
   };
 
@@ -386,7 +424,11 @@ const Timeline: React.FC<TimelineProps> = ({
 
       {/* Milestone lines */}
       {milestones.map(ms => {
-        const msX = dateToX(ms.date);
+        // Use dragged date if this milestone is being dragged
+        const isDragging = dragState?.msId === ms.id;
+        const displayDate = isDragging && dragState?.currentDate ? dragState.currentDate : ms.date;
+        
+        const msX = dateToX(displayDate);
         const milestoneColor = isPrintMode ? MILESTONE_COLORS.print : MILESTONE_COLORS.ui;
         return (
           <line
@@ -461,10 +503,16 @@ const Timeline: React.FC<TimelineProps> = ({
                   containerY +
                   AP_PADDING_VERTICAL +
                   spIndex * (subBarHeight + subStackSpacing);
-                const { x: spX, width: spWidth } = getBarGeometry(sp.start, sp.end);
+                
+                // Use dragged values if this SP is being dragged
+                const isDragging = dragState?.spId === sp.id;
+                const displayStart = isDragging && dragState?.currentStart ? dragState.currentStart : sp.start;
+                const displayEnd = isDragging && dragState?.currentEnd ? dragState.currentEnd : sp.end;
+
+                const { x: spX, width: spWidth } = getBarGeometry(displayStart, displayEnd);
                 const spLabelX = spX + spWidth + 14;
                 const spCenterY = stackY + subBarHeight / 2;
-                const subRangeLabel = `${formatShortMonth(sp.start)} – ${formatShortMonth(sp.end)}`;
+                const subRangeLabel = `${formatShortMonth(displayStart)} – ${formatShortMonth(displayEnd)}`;
 
                 return (
                   <g key={sp.id} className="sub-package">
@@ -478,14 +526,14 @@ const Timeline: React.FC<TimelineProps> = ({
                       strokeWidth={1}
                       rx={isPrintMode ? 3 : 8}
                       style={{ cursor: dragState ? 'grabbing' : 'grab' }}
-                      onMouseDown={e => handleMouseDown(e, 'move', wp.id, sp.id, sp)}
+                      onMouseDown={e => handleMouseDown(e, 'move', { wpId: wp.id, spId: sp.id }, { start: sp.start, end: sp.end })}
                       onMouseEnter={e => {
                         const rectBounds = e.currentTarget.getBoundingClientRect();
                         setTooltip({
                           x: rectBounds.right + 10,
                           y: rectBounds.top,
                           content: `${sp.title}
-${formatDate(sp.start)} – ${formatDate(sp.end)}`,
+${formatDate(displayStart)} – ${formatDate(displayEnd)}`,
                         });
                       }}
                       onMouseLeave={() => setTooltip(null)}
@@ -518,7 +566,7 @@ ${formatDate(sp.start)} – ${formatDate(sp.end)}`,
                       height={subBarHeight}
                       fill="transparent"
                       style={{ cursor: 'ew-resize' }}
-                      onMouseDown={e => handleMouseDown(e, 'resize-left', wp.id, sp.id, sp)}
+                      onMouseDown={e => handleMouseDown(e, 'resize-left', { wpId: wp.id, spId: sp.id }, { start: sp.start, end: sp.end })}
                       className="resize-handle"
                     />
                     <rect
@@ -528,7 +576,7 @@ ${formatDate(sp.start)} – ${formatDate(sp.end)}`,
                       height={subBarHeight}
                       fill="transparent"
                       style={{ cursor: 'ew-resize' }}
-                      onMouseDown={e => handleMouseDown(e, 'resize-right', wp.id, sp.id, sp)}
+                      onMouseDown={e => handleMouseDown(e, 'resize-right', { wpId: wp.id, spId: sp.id }, { start: sp.start, end: sp.end })}
                       className="resize-handle"
                     />
                   </g>
@@ -540,19 +588,24 @@ ${formatDate(sp.start)} – ${formatDate(sp.end)}`,
 
       {/* Milestone Markers */}
       {milestones.map(ms => {
-        const msX = dateToX(ms.date);
+        // Use dragged date if this milestone is being dragged
+        const isDragging = dragState?.msId === ms.id;
+        const displayDate = isDragging && dragState?.currentDate ? dragState.currentDate : ms.date;
+
+        const msX = dateToX(displayDate);
         const markerY = totalHeight - MILESTONE_BOTTOM_OFFSET;
         const milestoneColor = isPrintMode ? MILESTONE_COLORS.print : MILESTONE_COLORS.ui;
         const milestoneLabel = ms.title;
-        const milestoneDate = formatShortMonth(ms.date);
+        const milestoneDate = formatShortMonth(displayDate);
 
         return (
-          <g key={ms.id} className="milestone">
+          <g key={ms.id} className="milestone" style={{ cursor: 'grab' }}>
             <path
               d={`M ${msX} ${markerY - 10} L ${msX + 10} ${markerY} L ${msX} ${markerY + 10} L ${msX - 10} ${markerY} Z`}
               fill={milestoneColor}
               stroke={milestoneColor}
               strokeWidth={isPrintMode ? 1.2 : 1.6}
+              onMouseDown={e => handleMouseDown(e, 'move-milestone', { msId: ms.id }, { date: ms.date })}
             />
 
             <text
@@ -581,16 +634,16 @@ ${formatDate(sp.start)} – ${formatDate(sp.end)}`,
   return (
     <div
       ref={containerRef}
-      className="timeline-container flex-1 overflow-auto bg-surface"
+      className={`timeline-container flex-1 overflow-auto bg-surface ${dragState ? 'select-none cursor-grabbing' : ''}`}
       style={isPrintMode ? { backgroundColor: PRINT_PALETTE.background } : undefined}
     >
       {isPrintMode ? (
-        <div style={{ padding: '32px 48px 40px', backgroundColor: PRINT_PALETTE.background }}>
+        <div style={{ padding: '10px 48px 40px', backgroundColor: PRINT_PALETTE.background }}>
           <div
             style={{
               border: `1px solid ${PRINT_PALETTE.frameBorder}`,
               borderRadius: 16,
-              padding: '28px 32px 32px',
+              padding: '12px 32px 32px',
               background: PRINT_PALETTE.background,
               boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)',
             }}
