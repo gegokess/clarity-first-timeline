@@ -19,6 +19,7 @@ export interface WorkPackage {
   end: string; // ISO format: YYYY-MM-DD
   mode: 'auto' | 'manual'; // auto = rollup from UAPs, manual = user-defined
   subPackages: SubPackage[];
+  isCollapsed?: boolean;
 }
 
 // Meilenstein
@@ -56,20 +57,19 @@ export interface Toast {
 }
 
 // Zoom-Levels für Timeline
-export type ZoomLevel = 'auto' | 'month' | 'quarter' | 'year';
-export type ZoomPreset = 'month' | 'quarter' | 'year';
+export type TimeResolution = 'week' | 'month' | 'quarter' | 'year';
 
-export interface ZoomConfig {
+export interface TimeScaleConfig {
   tickDays: number; // Days between tick marks
-  viewDays: number; // Number of days visible in viewport
-  format: 'day' | 'week' | 'month' | 'quarter'; // How to format time axis labels
+  format: 'day' | 'week' | 'month' | 'quarter' | 'year'; // How to format time axis labels
 }
 
 // Timeline-Konfiguration
-export const ZOOM_CONFIGS: Record<ZoomPreset, ZoomConfig> = {
-  month: { tickDays: 7, viewDays: 120, format: 'week' },
-  quarter: { tickDays: 30, viewDays: 210, format: 'month' },
-  year: { tickDays: 90, viewDays: 420, format: 'quarter' },
+export const TIME_SCALE_CONFIGS: Record<TimeResolution, TimeScaleConfig> = {
+  week: { tickDays: 7, format: 'week' },
+  month: { tickDays: 30, format: 'month' },
+  quarter: { tickDays: 90, format: 'quarter' },
+  year: { tickDays: 365, format: 'year' },
 };
 
 // Timeline-Layout-Konstanten

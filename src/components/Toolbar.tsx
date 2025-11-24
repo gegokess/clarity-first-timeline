@@ -5,19 +5,31 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import type { ZoomLevel } from '../types';
+import type { TimeResolution } from '../types';
 import ProjectSettings from './ProjectSettings';
 
 interface ToolbarProps {
   projectName: string;
   projectStart?: string;
   projectEnd?: string;
-  zoomLevel: ZoomLevel;
   onProjectNameChange: (name: string) => void;
   onProjectDatesChange: (start?: string, end?: string) => void;
-  onZoomChange: (level: ZoomLevel) => void;
+  
+  // New Props
+  timeResolution: TimeResolution;
+  onTimeResolutionChange: (res: TimeResolution) => void;
+  pixelsPerDay: number;
+  onPixelsPerDayChange: (val: number | ((prev: number) => number)) => void;
+  
   onAddWorkPackage: () => void;
   onAddMilestone: () => void;
+  
+  // Undo/Redo
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+
   onExportJSON: () => void;
   onCopyJSON: () => void;
   onExportPDF: () => void;
@@ -29,12 +41,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
   projectName,
   projectStart,
   projectEnd,
-  zoomLevel,
   onProjectNameChange,
   onProjectDatesChange,
-  onZoomChange,
+  timeResolution,
+  onTimeResolutionChange,
+  pixelsPerDay,
+  onPixelsPerDayChange,
   onAddWorkPackage,
   onAddMilestone,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
   onExportJSON,
   onCopyJSON,
   onExportPDF,
@@ -122,12 +140,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     }
   };
 
-  const zoomOptions: { value: ZoomLevel; label: string }[] = [
-    { value: 'auto', label: 'Auto' },
-    { value: 'month', label: 'Monat' },
-    { value: 'quarter', label: 'Quartal' },
-    { value: 'year', label: 'Jahr' },
-  ];
+
 
   return (
     <header className="bg-surface/90 border-b border-line/80 shadow-[0_20px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl">
@@ -169,24 +182,76 @@ const Toolbar: React.FC<ToolbarProps> = ({
             </div>
           </div>
 
-          {/* Zoom */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-[11px] tracking-[0.25em] uppercase text-text-muted">Zoom</span>
-            <div className="flex gap-1 bg-panel/70 rounded-full p-1 border border-line/60">
-              {zoomOptions.map(option => (
-                <button
-                  key={option.value}
-                  onClick={() => onZoomChange(option.value)}
-                  className={`px-3 py-1.5 text-sm rounded-full transition-all ${
-                    zoomLevel === option.value
-                      ? 'bg-accent-gradient text-white font-semibold shadow-md'
-                      : 'text-text-muted hover:text-text'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+          {/* Time Resolution & Zoom */}
+          <div className="flex items-center gap-4">
+            {/* Time Resolution */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] uppercase tracking-wider text-text-muted font-medium">Ansicht</span>
+              <div className="flex bg-panel-alt/50 rounded-lg p-0.5 border border-line/40">
+                {(['week', 'month', 'quarter', 'year'] as TimeResolution[]).map((res) => (
+                  <button
+                    key={res}
+                    onClick={() => onTimeResolutionChange(res)}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                      timeResolution === res
+                        ? 'bg-panel shadow-sm text-white'
+                        : 'text-text-muted hover:text-text hover:bg-white/5'
+                    }`}
+                  >
+                    {res === 'week' ? 'Woche' : res === 'month' ? 'Monat' : res === 'quarter' ? 'Quartal' : 'Jahr'}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            <div className="w-px h-8 bg-line/40 mx-2" />
+
+            {/* Zoom Slider */}
+            <div className="flex flex-col gap-1 min-w-[120px]">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] uppercase tracking-wider text-text-muted font-medium">Zoom</span>
+                <span className="text-[10px] text-text-muted">{Math.round(pixelsPerDay)}px</span>
+              </div>
+              <input
+                type="range"
+                min="2"
+                max="100"
+                step="1"
+                value={pixelsPerDay}
+                onChange={(e) => onPixelsPerDayChange(Number(e.target.value))}
+                className="w-full h-1.5 bg-panel-alt rounded-lg appearance-none cursor-pointer accent-info"
+              />
+            </div>
+          </div>
+
+          <div className="w-px h-8 bg-line/40 mx-2" />
+
+          {/* Undo/Redo */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onUndo}
+              disabled={!canUndo}
+              className={`p-2 rounded-lg transition-colors ${
+                canUndo ? 'text-text hover:bg-white/10' : 'text-text-muted/30 cursor-not-allowed'
+              }`}
+              title="Rückgängig (Ctrl+Z)"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+            </button>
+            <button
+              onClick={onRedo}
+              disabled={!canRedo}
+              className={`p-2 rounded-lg transition-colors ${
+                canRedo ? 'text-text hover:bg-white/10' : 'text-text-muted/30 cursor-not-allowed'
+              }`}
+              title="Wiederherstellen (Ctrl+Y)"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
+              </svg>
+            </button>
           </div>
 
           <div className="flex-1" />

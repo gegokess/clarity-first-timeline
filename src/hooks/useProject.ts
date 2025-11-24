@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useHistory } from './useHistory';
 import type { Project, WorkPackage, SubPackage, Milestone, Toast } from '../types';
 import { today, minDate, maxDate, addDays, clampDate } from '../utils/dateUtils';
 import { validateProject, logValidationErrors, logValidationWarnings, getProjectWarnings } from '../utils/devChecks';
@@ -26,8 +27,20 @@ function createDefaultProject(): Project {
 }
 
 export function useProject() {
-  const [project, setProject] = useState<Project>(() => {
-    // Lade Projekt aus localStorage
+  const {
+    state: project,
+    set: setProject,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    reset: resetHistory,
+  } = useHistory<Project>(createDefaultProject());
+
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  // Initial load from localStorage
+  useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -36,17 +49,17 @@ export function useProject() {
         const errors = validateProject(parsed);
         if (errors.length > 0) {
           logValidationErrors('Loaded Project', errors);
-          return createDefaultProject();
+          // Fallback to default if invalid
+          resetHistory(createDefaultProject());
+        } else {
+          resetHistory(parsed);
         }
-        return parsed;
       }
     } catch (error) {
       console.error('Fehler beim Laden des Projekts:', error);
     }
-    return createDefaultProject();
-  });
-
-  const [toasts, setToasts] = useState<Toast[]>([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   // Speichere Projekt in localStorage bei jeder Änderung
   useEffect(() => {
@@ -87,19 +100,19 @@ export function useProject() {
   // Projekt-Operationen
   const updateProjectName = useCallback((name: string) => {
     setProject(prev => ({ ...prev, name }));
-  }, []);
+  }, [setProject]);
 
   const updateProjectSettings = useCallback((settings: Partial<Project['settings']>) => {
     setProject(prev => ({
       ...prev,
       settings: { ...prev.settings, ...settings },
     }));
-  }, []);
+  }, [setProject]);
 
   const updateProjectDates = useCallback((start?: string, end?: string) => {
     setProject(prev => ({ ...prev, start, end }));
     showToast('success', 'Projekt-Zeitraum aktualisiert');
-  }, [showToast]);
+  }, [setProject, showToast]);
 
   // Auto-Rollup: Berechnet AP-Daten aus UAPs
   const rollupWorkPackageDates = useCallback((apId: string) => {
@@ -136,7 +149,7 @@ export function useProject() {
         workPackages: newWorkPackages,
       };
     });
-  }, []);
+  }, [setProject]);
 
   // WorkPackage CRUD
   const addWorkPackage = useCallback(() => {
@@ -158,7 +171,7 @@ export function useProject() {
     }));
 
     showToast('success', 'Arbeitspaket hinzugefügt');
-  }, [showToast]);
+  }, [setProject, showToast]);
 
   const updateWorkPackage = useCallback((id: string, updates: Partial<WorkPackage>) => {
     setProject(prev => {
@@ -174,7 +187,7 @@ export function useProject() {
         workPackages: newWorkPackages,
       };
     });
-  }, []);
+  }, [setProject]);
 
   const deleteWorkPackage = useCallback((id: string) => {
     setProject(prev => ({
@@ -182,7 +195,26 @@ export function useProject() {
       workPackages: prev.workPackages.filter(wp => wp.id !== id),
     }));
     showToast('success', 'Arbeitspaket gelöscht');
-  }, [showToast]);
+  }, [setProject, showToast]);
+
+  const toggleWorkPackageCollapse = useCallback((id: string) => {
+    setProject(prev => {
+      const index = prev.workPackages.findIndex(wp => wp.id === id);
+      if (index === -1) return prev;
+
+      const updatedWp = { 
+        ...prev.workPackages[index], 
+        isCollapsed: !prev.workPackages[index].isCollapsed 
+      };
+      const newWorkPackages = [...prev.workPackages];
+      newWorkPackages[index] = updatedWp;
+
+      return {
+        ...prev,
+        workPackages: newWorkPackages,
+      };
+    });
+  }, [setProject]);
 
   // SubPackage CRUD
   const addSubPackage = useCallback((apId: string) => {
@@ -231,7 +263,7 @@ export function useProject() {
     setTimeout(() => rollupWorkPackageDates(apId), 0);
 
     showToast('success', 'Unterarbeitspaket hinzugefügt');
-  }, [showToast, rollupWorkPackageDates]);
+  }, [setProject, showToast, rollupWorkPackageDates]);
 
   const updateSubPackage = useCallback((apId: string, uapId: string, updates: Partial<SubPackage>) => {
     setProject(prev => {
@@ -269,7 +301,7 @@ export function useProject() {
 
     // Trigger auto-rollup
     setTimeout(() => rollupWorkPackageDates(apId), 0);
-  }, [rollupWorkPackageDates]);
+  }, [setProject, rollupWorkPackageDates]);
 
   const deleteSubPackage = useCallback((apId: string, uapId: string) => {
     setProject(prev => {
@@ -295,7 +327,7 @@ export function useProject() {
     setTimeout(() => rollupWorkPackageDates(apId), 0);
 
     showToast('success', 'Unterarbeitspaket gelöscht');
-  }, [showToast, rollupWorkPackageDates]);
+  }, [setProject, showToast, rollupWorkPackageDates]);
 
   // Milestone CRUD
   const addMilestone = useCallback(() => {
@@ -311,7 +343,7 @@ export function useProject() {
     }));
 
     showToast('success', 'Meilenstein hinzugefügt');
-  }, [showToast]);
+  }, [setProject, showToast]);
 
   const updateMilestone = useCallback((id: string, updates: Partial<Milestone>) => {
     setProject(prev => {
@@ -327,7 +359,7 @@ export function useProject() {
         milestones: newMilestones,
       };
     });
-  }, []);
+  }, [setProject]);
 
   const deleteMilestone = useCallback((id: string) => {
     setProject(prev => ({
@@ -335,7 +367,7 @@ export function useProject() {
       milestones: prev.milestones.filter(ms => ms.id !== id),
     }));
     showToast('success', 'Meilenstein gelöscht');
-  }, [showToast]);
+  }, [setProject, showToast]);
 
   // Export/Import
   const exportToJSON = useCallback((): string => {
@@ -379,22 +411,28 @@ export function useProject() {
         return;
       }
 
-      setProject(parsed);
+      resetHistory(parsed);
       showToast('success', 'Projekt erfolgreich importiert');
     } catch (error) {
       console.error('Fehler beim Importieren:', error);
       showToast('error', 'Fehler beim Importieren des Projekts');
     }
-  }, [showToast]);
+  }, [resetHistory, showToast]);
 
   const resetProject = useCallback(() => {
-    setProject(createDefaultProject());
+    resetHistory(createDefaultProject());
     showToast('info', 'Projekt zurückgesetzt');
-  }, [showToast]);
+  }, [resetHistory, showToast]);
 
   return {
     project,
     toasts,
+    canUndo,
+    canRedo,
+
+    // History
+    undo,
+    redo,
 
     // Toast
     showToast,
@@ -409,6 +447,7 @@ export function useProject() {
     addWorkPackage,
     updateWorkPackage,
     deleteWorkPackage,
+    toggleWorkPackageCollapse,
 
     // SubPackage
     addSubPackage,

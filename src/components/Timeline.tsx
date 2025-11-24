@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useLayoutEffect } from 'react';
-import type { WorkPackage, Milestone, ZoomLevel, SubPackage, ZoomPreset } from '../types';
-import { ZOOM_CONFIGS, TIMELINE_CONSTANTS } from '../types';
+import type { WorkPackage, Milestone, SubPackage, TimeResolution } from '../types';
+import { TIME_SCALE_CONFIGS, TIMELINE_CONSTANTS } from '../types';
 import {
   daysBetween,
   addDays,
@@ -21,7 +21,8 @@ import EditModal from './EditModal';
 interface TimelineProps {
   workPackages: WorkPackage[];
   milestones: Milestone[];
-  zoomLevel: ZoomLevel;
+  timeResolution: TimeResolution;
+  pixelsPerDay: number;
   clampingEnabled: boolean;
   projectStart?: string;
   projectEnd?: string;
@@ -34,6 +35,9 @@ interface TimelineProps {
   onDeleteMilestone: (id: string) => void;
   onUpdateWorkPackage: (id: string, updates: Partial<WorkPackage>) => void;
   onAddSubPackage: (wpId: string) => void;
+  onToggleCollapse: (id: string) => void;
+  selection: { type: 'wp' | 'sp' | 'ms'; id: string; parentId?: string } | null;
+  onSelect: (type: 'wp' | 'sp' | 'ms', id: string, parentId?: string) => void;
 }
 
 const PRINT_PALETTE = {
@@ -61,11 +65,7 @@ const MILESTONE_COLORS = {
   print: '#DAA520',
 } as const;
 
-const PIXELS_PER_DAY: Record<ZoomPreset, number> = {
-  month: 18,
-  quarter: 12,
-  year: 8,
-};
+
 
 const SHORT_MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
@@ -76,17 +76,13 @@ const formatShortMonth = (isoDate: string): string => {
   return `${day}. ${month}`;
 };
 
-const determinePreset = (level: ZoomLevel, spanDays: number): ZoomPreset => {
-  if (level !== 'auto') return level;
-  if (spanDays <= 160) return 'month';
-  if (spanDays <= 320) return 'quarter';
-  return 'year';
-};
+
 
 const Timeline: React.FC<TimelineProps> = ({
   workPackages,
   milestones,
-  zoomLevel,
+  timeResolution,
+  pixelsPerDay,
   clampingEnabled,
   projectStart,
   projectEnd,
@@ -99,6 +95,9 @@ const Timeline: React.FC<TimelineProps> = ({
   onDeleteMilestone,
   onUpdateWorkPackage,
   onAddSubPackage,
+  onToggleCollapse,
+  selection,
+  onSelect,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -179,21 +178,18 @@ const Timeline: React.FC<TimelineProps> = ({
     };
   }, [workPackages, milestones, projectStart, projectEnd]);
 
-  const timelineSpanDays = Math.max(1, daysBetween(timelineBounds.min, timelineBounds.max));
   const isPrintMode = usePrintMode();
-  const activePreset = determinePreset(zoomLevel, timelineSpanDays);
-  const zoomConfig = ZOOM_CONFIGS[activePreset];
+  const timeScaleConfig = TIME_SCALE_CONFIGS[timeResolution];
 
-  const paddingDays = Math.max(zoomConfig.tickDays, 7);
+  const paddingDays = Math.max(timeScaleConfig.tickDays, 7);
   const effectiveViewStart = addDays(timelineBounds.min, -paddingDays);
   const effectiveViewEnd = addDays(timelineBounds.max, paddingDays);
   const effectiveViewDays = Math.max(1, daysBetween(effectiveViewStart, effectiveViewEnd));
 
-  const density = PIXELS_PER_DAY[activePreset];
-  const desiredWidth = effectiveViewDays * density + TIMELINE_CONSTANTS.PADDING_LEFT + TIMELINE_CONSTANTS.PADDING_RIGHT;
+  const desiredWidth = effectiveViewDays * pixelsPerDay + TIMELINE_CONSTANTS.PADDING_LEFT + TIMELINE_CONSTANTS.PADDING_RIGHT;
   const svgWidth = isPrintMode ? Math.max(desiredWidth, 640) : Math.max(viewWidth, desiredWidth);
   const availableWidth = svgWidth - TIMELINE_CONSTANTS.PADDING_LEFT - TIMELINE_CONSTANTS.PADDING_RIGHT;
-  const dayPixel = availableWidth / effectiveViewDays;
+  const dayPixel = pixelsPerDay; // Use prop directly
 
   const {
     SUBBAR_HEIGHT,
@@ -229,7 +225,7 @@ const Timeline: React.FC<TimelineProps> = ({
   };
 
   const getSubStackHeight = (wp: WorkPackage): number => {
-    if (wp.subPackages.length === 0) return 0;
+    if (wp.isCollapsed || wp.subPackages.length === 0) return 0;
     return (
       wp.subPackages.length * subBarHeight +
       Math.max(0, wp.subPackages.length - 1) * subStackSpacing +
@@ -269,7 +265,7 @@ const Timeline: React.FC<TimelineProps> = ({
   const timeTicks = useMemo(() => {
     const ticks: { date: string; x: number; label: string }[] = [];
     const formatLabel = (date: string) => {
-      switch (zoomConfig.format) {
+      switch (timeScaleConfig.format) {
         case 'day':
           return formatDate(date, 'short');
         case 'week':
@@ -277,7 +273,9 @@ const Timeline: React.FC<TimelineProps> = ({
         case 'month':
           return getMonthName(date).slice(0, 3);
         case 'quarter':
+        case 'year':
         default:
+          if (timeScaleConfig.format === 'year') return date.slice(0, 4);
           return getQuarterString(date);
       }
     };
@@ -292,18 +290,18 @@ const Timeline: React.FC<TimelineProps> = ({
 
     pushTick(effectiveViewStart, true);
 
-    let nextDate = addDays(effectiveViewStart, zoomConfig.tickDays);
+    let nextDate = addDays(effectiveViewStart, timeScaleConfig.tickDays);
     let safety = 0;
     while (daysBetween(nextDate, effectiveViewEnd) > 0 && safety < 200) {
       pushTick(nextDate, true);
-      nextDate = addDays(nextDate, zoomConfig.tickDays);
+      nextDate = addDays(nextDate, timeScaleConfig.tickDays);
       safety += 1;
     }
 
     pushTick(effectiveViewEnd, false);
 
     return ticks;
-  }, [effectiveViewStart, effectiveViewEnd, zoomConfig, dateToX]);
+  }, [effectiveViewStart, effectiveViewEnd, timeScaleConfig, dateToX]);
 
   const handleMouseDown = (
     e: React.MouseEvent,
@@ -659,7 +657,13 @@ const Timeline: React.FC<TimelineProps> = ({
               rx={isPrintMode ? 3 : 10}
               onContextMenu={(e) => handleWorkPackageContextMenu(e, wp)}
               onDoubleClick={(e) => handleWorkPackageDoubleClick(e, wp)}
-              className="cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect('wp', wp.id);
+              }}
+              className={`cursor-pointer hover:opacity-80 transition-opacity ${
+                selection?.type === 'wp' && selection.id === wp.id ? 'stroke-info stroke-[3px]' : ''
+              }`}
             />
 
             <text
@@ -686,7 +690,29 @@ const Timeline: React.FC<TimelineProps> = ({
               {dateRangeLabel}
             </text>
 
-            {hasSubPackages &&
+            {/* Toggle Button */}
+            {hasSubPackages && (
+              <g
+                className="cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleCollapse(wp.id);
+                }}
+                transform={`translate(${apX - 20}, ${apBarY + apBarHeight / 2 - 8})`}
+              >
+                <circle cx="8" cy="8" r="8" fill={isPrintMode ? 'transparent' : 'var(--color-panel-alt)'} stroke={palette.ap} strokeWidth="1" />
+                <path
+                  d={wp.isCollapsed ? "M6 5L11 8L6 11" : "M5 6L8 11L11 6"}
+                  stroke={palette.ap}
+                  strokeWidth="1.5"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </g>
+            )}
+
+            {!wp.isCollapsed && hasSubPackages &&
               wp.subPackages.map((sp, spIndex) => {
                 const stackY =
                   containerY +
@@ -728,6 +754,11 @@ ${formatDate(displayStart)} – ${formatDate(displayEnd)}`,
                       onMouseLeave={() => setTooltip(null)}
                       onContextMenu={(e) => handleSubPackageContextMenu(e, wp.id, sp)}
                       onDoubleClick={(e) => handleSubPackageDoubleClick(e, wp.id, sp)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect('sp', sp.id, wp.id);
+                      }}
+                      className={selection?.type === 'sp' && selection.id === sp.id ? 'stroke-info stroke-[3px]' : ''}
                     />
 
                     <text
@@ -797,11 +828,15 @@ ${formatDate(displayStart)} – ${formatDate(displayEnd)}`,
             <path
               d={`M ${msX} ${markerY - 10} L ${msX + 10} ${markerY} L ${msX} ${markerY + 10} L ${msX - 10} ${markerY} Z`}
               fill={milestoneColor}
-              stroke={milestoneColor}
-              strokeWidth={isPrintMode ? 1.2 : 1.6}
+              stroke={selection?.type === 'ms' && selection.id === ms.id ? 'var(--color-info)' : milestoneColor}
+              strokeWidth={selection?.type === 'ms' && selection.id === ms.id ? 3 : 1}
               onMouseDown={e => handleMouseDown(e, 'move-milestone', { msId: ms.id }, { date: ms.date })}
               onContextMenu={(e) => handleMilestoneContextMenu(e, ms)}
               onDoubleClick={(e) => handleMilestoneDoubleClick(e, ms)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect('ms', ms.id);
+              }}
             />
 
             <text

@@ -6,11 +6,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { useProject } from './hooks/useProject';
-import type { ZoomLevel } from './types';
+import type { TimeResolution } from './types';
 import Toolbar from './components/Toolbar';
 import Timeline from './components/Timeline';
 import ToastContainer from './components/ToastContainer';
 import { exportTimelineToPDF, exportTimelineToPNG, initPDFExport, cleanupPDFExport } from './utils/pdfUtils';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+
+type Selection = {
+  type: 'wp' | 'sp' | 'ms';
+  id: string;
+  parentId?: string; // For sub-packages
+} | null;
 
 const App: React.FC = () => {
   const {
@@ -32,16 +39,102 @@ const App: React.FC = () => {
     exportToFile,
     copyToClipboard,
     importFromJSON,
+    toggleWorkPackageCollapse,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   } = useProject();
 
-  const [zoomLevel, setZoomLevel] = useState<ZoomLevel>('auto');
+  const [timeResolution, setTimeResolution] = useState<TimeResolution>('month');
+  const [pixelsPerDay, setPixelsPerDay] = useState(20);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [selection, setSelection] = useState<Selection>(null);
 
   // PDF Export initialisieren
   useEffect(() => {
     initPDFExport();
     return () => cleanupPDFExport();
   }, []);
+
+  const handleDeleteSelection = () => {
+    if (!selection) return;
+    
+    if (selection.type === 'wp') {
+      if (confirm('Arbeitspaket löschen?')) {
+        deleteWorkPackage(selection.id);
+        setSelection(null);
+      }
+    } else if (selection.type === 'sp' && selection.parentId) {
+      if (confirm('Unterarbeitspaket löschen?')) {
+        deleteSubPackage(selection.parentId, selection.id);
+        setSelection(null);
+      }
+    } else if (selection.type === 'ms') {
+      if (confirm('Meilenstein löschen?')) {
+        deleteMilestone(selection.id);
+        setSelection(null);
+      }
+    }
+  };
+
+  // Keyboard Shortcuts
+  useKeyboardShortcuts([
+    // Undo
+    {
+      key: 'z',
+      ctrl: true,
+      handler: () => {
+        if (canUndo) {
+          undo();
+          showToast('info', 'Rückgängig gemacht');
+        }
+      },
+    },
+    // Redo (Ctrl+Y)
+    {
+      key: 'y',
+      ctrl: true,
+      handler: () => {
+        if (canRedo) {
+          redo();
+          showToast('info', 'Wiederhergestellt');
+        }
+      },
+    },
+    // Redo (Ctrl+Shift+Z)
+    {
+      key: 'z',
+      ctrl: true,
+      shift: true,
+      handler: () => {
+        if (canRedo) {
+          redo();
+          showToast('info', 'Wiederhergestellt');
+        }
+      },
+    },
+    // Zoom In (+)
+    {
+      key: '+',
+      handler: () => setPixelsPerDay(prev => Math.min(prev * 1.2, 200)),
+    },
+    // Zoom Out (-)
+    {
+      key: '-',
+      handler: () => setPixelsPerDay(prev => Math.max(prev / 1.2, 2)),
+    },
+    // Delete
+    {
+      key: 'Delete',
+      handler: handleDeleteSelection,
+    },
+    // Backspace (same as Delete)
+    {
+      key: 'Backspace',
+      handler: handleDeleteSelection,
+    },
+  ]);
 
   // Drag & Drop für JSON-Import
   const handleDragOver = (e: React.DragEvent) => {
@@ -65,12 +158,17 @@ const App: React.FC = () => {
         const text = event.target?.result as string;
         if (text) {
           importFromJSON(text);
+          showToast('success', 'Projekt erfolgreich importiert');
         }
       };
       reader.readAsText(file);
     } else {
       showToast('error', 'Bitte eine gültige JSON-Datei hochladen');
     }
+  };
+
+  const handleSelect = (type: 'wp' | 'sp' | 'ms', id: string, parentId?: string) => {
+    setSelection({ type, id, parentId });
   };
 
   return (
@@ -83,15 +181,20 @@ const App: React.FC = () => {
       {/* Toolbar */}
       <Toolbar
         projectName={project.name}
+        onProjectNameChange={updateProjectName}
         projectStart={project.start}
         projectEnd={project.end}
-        zoomLevel={zoomLevel}
-        onProjectNameChange={updateProjectName}
         onProjectDatesChange={updateProjectDates}
-        onZoomChange={setZoomLevel}
-        onAddWorkPackage={addWorkPackage}
-        onAddMilestone={addMilestone}
+        timeResolution={timeResolution}
+        onTimeResolutionChange={setTimeResolution}
+        pixelsPerDay={pixelsPerDay}
+        onPixelsPerDayChange={setPixelsPerDay}
         onExportJSON={exportToFile}
+        onImportJSON={() => document.getElementById('import-json')?.click()}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
         onCopyJSON={copyToClipboard}
         onExportPDF={exportTimelineToPDF}
         onExportPNG={async () => {
@@ -102,16 +205,21 @@ const App: React.FC = () => {
             showToast('error', 'Fehler beim PNG-Export');
           }
         }}
-        onImportJSON={importFromJSON}
+        onAddWorkPackage={addWorkPackage}
+        onAddMilestone={addMilestone}
       />
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(111,126,255,0.12),_transparent_45%)]">
+      <div 
+        className="flex flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(111,126,255,0.12),_transparent_45%)]"
+        onClick={() => setSelection(null)}
+      >
         {/* Timeline */}
         <Timeline
           workPackages={project.workPackages}
           milestones={project.milestones}
-          zoomLevel={zoomLevel}
+          timeResolution={timeResolution}
+          pixelsPerDay={pixelsPerDay}
           clampingEnabled={project.settings.clampUapInsideManualAp}
           projectStart={project.start}
           projectEnd={project.end}
@@ -124,6 +232,9 @@ const App: React.FC = () => {
           onDeleteMilestone={deleteMilestone}
           onUpdateWorkPackage={updateWorkPackage}
           onAddSubPackage={addSubPackage}
+          onToggleCollapse={toggleWorkPackageCollapse}
+          selection={selection}
+          onSelect={handleSelect}
         />
       </div>
 
