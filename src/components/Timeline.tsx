@@ -1,9 +1,3 @@
-/**
- * Timeline Component
- * SVG-basierte Gantt-Chart-Visualisierung mit Drag & Drop und Resize
- * Basierend auf docs/05-DesignSystem.md
- */
-
 import React, { useState, useRef, useMemo, useLayoutEffect } from 'react';
 import type { WorkPackage, Milestone, ZoomLevel, SubPackage, ZoomPreset } from '../types';
 import { ZOOM_CONFIGS, TIMELINE_CONSTANTS } from '../types';
@@ -21,6 +15,8 @@ import {
   fromISODate,
 } from '../utils/dateUtils';
 import { usePrintMode } from '../hooks/usePrintMode';
+import ContextMenu, { ContextMenuItem } from './ContextMenu';
+import EditModal from './EditModal';
 
 interface TimelineProps {
   workPackages: WorkPackage[];
@@ -30,7 +26,14 @@ interface TimelineProps {
   projectStart?: string;
   projectEnd?: string;
   onUpdateSubPackage: (wpId: string, spId: string, updates: Partial<SubPackage>) => void;
-  onUpdateMilestone?: (msId: string, updates: Partial<Milestone>) => void;
+  onUpdateMilestone: (msId: string, updates: Partial<Milestone>) => void;
+  onAddWorkPackage: () => void;
+  onAddMilestone: () => void;
+  onDeleteWorkPackage: (id: string) => void;
+  onDeleteSubPackage: (wpId: string, spId: string) => void;
+  onDeleteMilestone: (id: string) => void;
+  onUpdateWorkPackage: (id: string, updates: Partial<WorkPackage>) => void;
+  onAddSubPackage: (wpId: string) => void;
 }
 
 const PRINT_PALETTE = {
@@ -89,6 +92,13 @@ const Timeline: React.FC<TimelineProps> = ({
   projectEnd,
   onUpdateSubPackage,
   onUpdateMilestone,
+  onAddWorkPackage,
+  onAddMilestone,
+  onDeleteWorkPackage,
+  onDeleteSubPackage,
+  onDeleteMilestone,
+  onUpdateWorkPackage,
+  onAddSubPackage,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,6 +120,28 @@ const Timeline: React.FC<TimelineProps> = ({
     // Gemeinsam
     startX: number;
   } | null>(null);
+
+  // Context Menu State
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    items: ContextMenuItem[];
+  } | null>(null);
+
+  // Edit Modal State
+  const [editModal, setEditModal] = useState<{
+    isOpen: boolean;
+    type: 'workPackage' | 'subPackage' | 'milestone';
+    title: string;
+    initialData: any;
+    onSave: (data: any) => void;
+  }>({
+    isOpen: false,
+    type: 'workPackage',
+    title: '',
+    initialData: {},
+    onSave: () => {},
+  });
 
   useLayoutEffect(() => {
     const updateWidth = () => {
@@ -279,6 +311,7 @@ const Timeline: React.FC<TimelineProps> = ({
     idObj: { wpId?: string; spId?: string; msId?: string },
     initialData: { start?: string; end?: string; date?: string }
   ) => {
+    if (e.button !== 0) return; // Only left click for drag
     e.stopPropagation();
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return;
@@ -367,6 +400,155 @@ const Timeline: React.FC<TimelineProps> = ({
     setDragState(null);
   };
 
+  // --- Context Menu Handlers ---
+
+  const handleBackgroundContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        { label: 'Neues Arbeitspaket', onClick: onAddWorkPackage, icon: <span className="text-lg">+</span> },
+        { label: 'Neuer Meilenstein', onClick: onAddMilestone, icon: <span className="text-lg">★</span> },
+      ],
+    });
+  };
+
+  const handleWorkPackageContextMenu = (e: React.MouseEvent, wp: WorkPackage) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        {
+          label: 'Bearbeiten',
+          onClick: () => {
+            setEditModal({
+              isOpen: true,
+              type: 'workPackage',
+              title: 'Arbeitspaket bearbeiten',
+              initialData: wp,
+              onSave: (data) => onUpdateWorkPackage(wp.id, data),
+            });
+          },
+        },
+        {
+          label: 'UAP hinzufügen',
+          onClick: () => onAddSubPackage(wp.id),
+        },
+        {
+          label: 'Löschen',
+          danger: true,
+          onClick: () => {
+            if (confirm(`Arbeitspaket "${wp.title}" wirklich löschen?`)) {
+              onDeleteWorkPackage(wp.id);
+            }
+          },
+        },
+      ],
+    });
+  };
+
+  const handleSubPackageContextMenu = (e: React.MouseEvent, wpId: string, sp: SubPackage) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        {
+          label: 'Bearbeiten',
+          onClick: () => {
+            setEditModal({
+              isOpen: true,
+              type: 'subPackage',
+              title: 'UAP bearbeiten',
+              initialData: sp,
+              onSave: (data) => onUpdateSubPackage(wpId, sp.id, data),
+            });
+          },
+        },
+        {
+          label: 'Löschen',
+          danger: true,
+          onClick: () => {
+            if (confirm(`UAP "${sp.title}" wirklich löschen?`)) {
+              onDeleteSubPackage(wpId, sp.id);
+            }
+          },
+        },
+      ],
+    });
+  };
+
+  const handleMilestoneContextMenu = (e: React.MouseEvent, ms: Milestone) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        {
+          label: 'Bearbeiten',
+          onClick: () => {
+            setEditModal({
+              isOpen: true,
+              type: 'milestone',
+              title: 'Meilenstein bearbeiten',
+              initialData: ms,
+              onSave: (data) => onUpdateMilestone(ms.id, data),
+            });
+          },
+        },
+        {
+          label: 'Löschen',
+          danger: true,
+          onClick: () => {
+            if (confirm(`Meilenstein "${ms.title}" wirklich löschen?`)) {
+              onDeleteMilestone(ms.id);
+            }
+          },
+        },
+      ],
+    });
+  };
+
+  // --- Double Click Handlers ---
+
+  const handleWorkPackageDoubleClick = (e: React.MouseEvent, wp: WorkPackage) => {
+    e.stopPropagation();
+    setEditModal({
+      isOpen: true,
+      type: 'workPackage',
+      title: 'Arbeitspaket bearbeiten',
+      initialData: wp,
+      onSave: (data) => onUpdateWorkPackage(wp.id, data),
+    });
+  };
+
+  const handleSubPackageDoubleClick = (e: React.MouseEvent, wpId: string, sp: SubPackage) => {
+    e.stopPropagation();
+    setEditModal({
+      isOpen: true,
+      type: 'subPackage',
+      title: 'UAP bearbeiten',
+      initialData: sp,
+      onSave: (data) => onUpdateSubPackage(wpId, sp.id, data),
+    });
+  };
+
+  const handleMilestoneDoubleClick = (e: React.MouseEvent, ms: Milestone) => {
+    e.stopPropagation();
+    setEditModal({
+      isOpen: true,
+      type: 'milestone',
+      title: 'Meilenstein bearbeiten',
+      initialData: ms,
+      onSave: (data) => onUpdateMilestone(ms.id, data),
+    });
+  };
+
   const svgElement = (
     <svg
       ref={svgRef}
@@ -375,6 +557,7 @@ const Timeline: React.FC<TimelineProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onContextMenu={handleBackgroundContextMenu}
       className="timeline-svg"
       id="gantt-chart-svg"
     >
@@ -474,6 +657,9 @@ const Timeline: React.FC<TimelineProps> = ({
               stroke={palette.ap}
               strokeWidth={isPrintMode ? 1.4 : 1}
               rx={isPrintMode ? 3 : 10}
+              onContextMenu={(e) => handleWorkPackageContextMenu(e, wp)}
+              onDoubleClick={(e) => handleWorkPackageDoubleClick(e, wp)}
+              className="cursor-pointer hover:opacity-80 transition-opacity"
             />
 
             <text
@@ -484,6 +670,9 @@ const Timeline: React.FC<TimelineProps> = ({
               fontWeight={isPrintMode ? 700 : 600}
               textAnchor="middle"
               dominantBaseline="middle"
+              onContextMenu={(e) => handleWorkPackageContextMenu(e, wp)}
+              onDoubleClick={(e) => handleWorkPackageDoubleClick(e, wp)}
+              className="cursor-pointer hover:text-info transition-colors"
             >
               {wp.title}
             </text>
@@ -537,6 +726,8 @@ ${formatDate(displayStart)} – ${formatDate(displayEnd)}`,
                         });
                       }}
                       onMouseLeave={() => setTooltip(null)}
+                      onContextMenu={(e) => handleSubPackageContextMenu(e, wp.id, sp)}
+                      onDoubleClick={(e) => handleSubPackageDoubleClick(e, wp.id, sp)}
                     />
 
                     <text
@@ -546,6 +737,9 @@ ${formatDate(displayStart)} – ${formatDate(displayEnd)}`,
                       fontSize={11}
                       fontWeight={600}
                       dominantBaseline="middle"
+                      onContextMenu={(e) => handleSubPackageContextMenu(e, wp.id, sp)}
+                      onDoubleClick={(e) => handleSubPackageDoubleClick(e, wp.id, sp)}
+                      className="cursor-pointer hover:text-info transition-colors"
                     >
                       {sp.title}
                     </text>
@@ -606,6 +800,8 @@ ${formatDate(displayStart)} – ${formatDate(displayEnd)}`,
               stroke={milestoneColor}
               strokeWidth={isPrintMode ? 1.2 : 1.6}
               onMouseDown={e => handleMouseDown(e, 'move-milestone', { msId: ms.id }, { date: ms.date })}
+              onContextMenu={(e) => handleMilestoneContextMenu(e, ms)}
+              onDoubleClick={(e) => handleMilestoneDoubleClick(e, ms)}
             />
 
             <text
@@ -614,6 +810,9 @@ ${formatDate(displayStart)} – ${formatDate(displayEnd)}`,
               fill={milestoneColor}
               fontSize={isPrintMode ? 11 : 12}
               fontWeight={600}
+              onContextMenu={(e) => handleMilestoneContextMenu(e, ms)}
+              onDoubleClick={(e) => handleMilestoneDoubleClick(e, ms)}
+              className="cursor-pointer hover:text-info transition-colors"
             >
               {milestoneLabel}
             </text>
@@ -665,6 +864,24 @@ ${formatDate(displayStart)} – ${formatDate(displayEnd)}`,
           {tooltip.content}
         </div>
       )}
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={contextMenu.items}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      <EditModal
+        isOpen={editModal.isOpen}
+        onClose={() => setEditModal({ ...editModal, isOpen: false })}
+        onSave={editModal.onSave}
+        title={editModal.title}
+        initialData={editModal.initialData}
+        type={editModal.type}
+      />
     </div>
   );
 };

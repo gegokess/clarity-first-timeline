@@ -8,7 +8,6 @@ import React, { useState, useEffect } from 'react';
 import { useProject } from './hooks/useProject';
 import type { ZoomLevel } from './types';
 import Toolbar from './components/Toolbar';
-import WorkPackageTree from './components/WorkPackageTree';
 import Timeline from './components/Timeline';
 import ToastContainer from './components/ToastContainer';
 import { exportTimelineToPDF, exportTimelineToPNG, initPDFExport, cleanupPDFExport } from './utils/pdfUtils';
@@ -108,19 +107,6 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(111,126,255,0.12),_transparent_45%)]">
-        {/* WorkPackage Tree Sidebar */}
-        <WorkPackageTree
-          workPackages={project.workPackages}
-          milestones={project.milestones}
-          onUpdateWorkPackage={updateWorkPackage}
-          onDeleteWorkPackage={deleteWorkPackage}
-          onAddSubPackage={addSubPackage}
-          onUpdateSubPackage={updateSubPackage}
-          onDeleteSubPackage={deleteSubPackage}
-          onUpdateMilestone={updateMilestone}
-          onDeleteMilestone={deleteMilestone}
-        />
-
         {/* Timeline */}
         <Timeline
           workPackages={project.workPackages}
@@ -131,6 +117,13 @@ const App: React.FC = () => {
           projectEnd={project.end}
           onUpdateSubPackage={updateSubPackage}
           onUpdateMilestone={updateMilestone}
+          onAddWorkPackage={addWorkPackage}
+          onAddMilestone={addMilestone}
+          onDeleteWorkPackage={deleteWorkPackage}
+          onDeleteSubPackage={deleteSubPackage}
+          onDeleteMilestone={deleteMilestone}
+          onUpdateWorkPackage={updateWorkPackage}
+          onAddSubPackage={addSubPackage}
         />
       </div>
 
