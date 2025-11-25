@@ -6,7 +6,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import type { TimeResolution } from '../types';
+import type { ExportSettings } from '../types/ExportTypes';
 import ProjectSettings from './ProjectSettings';
+import ExportSettingsModal from './ExportSettingsModal';
+import ImportDialog from './ImportDialog';
 
 interface ToolbarProps {
   projectName: string;
@@ -35,6 +38,12 @@ interface ToolbarProps {
   onExportPDF: () => void;
   onExportPNG: () => void;
   onImportJSON: (json: string) => void;
+  
+  // Export Settings
+  exportSettings: ExportSettings;
+  onExportSettingsChange: (settings: ExportSettings) => void;
+  onExportPDFEnhanced: () => Promise<void>;
+  onExportPNGEnhanced: () => Promise<void>;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -58,18 +67,20 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onExportPDF,
   onExportPNG,
   onImportJSON,
+  exportSettings,
+  onExportSettingsChange,
+  onExportPDFEnhanced,
+  onExportPNGEnhanced,
 }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(projectName);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [importText, setImportText] = useState('');
+  const [isExportSettingsOpen, setIsExportSettingsOpen] = useState(false);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
-  const importDialogRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-Focus bei Name-Bearbeitung
   useEffect(() => {
@@ -111,35 +122,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
       setIsEditingName(false);
     }
   };
-
-  const handleImportSubmit = () => {
-    const trimmed = importText.trim();
-    if (trimmed) {
-      onImportJSON(trimmed);
-      setImportText('');
-      setIsImportDialogOpen(false);
-    }
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        if (text) {
-          onImportJSON(text);
-          setIsImportDialogOpen(false);
-        }
-      };
-      reader.readAsText(file);
-    }
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
 
 
   return (
@@ -328,7 +310,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      onExportPDF();
+                      onExportPDFEnhanced();
                       setIsExportMenuOpen(false);
                     }}
                     className="w-full px-4 py-3 text-left text-sm text-white/90 hover:bg-panel transition-colors flex items-center gap-3 border-t border-line/70"
@@ -336,11 +318,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
-                    PDF Export (Timeline)
+                    PDF Export
                   </button>
                   <button
                     onClick={() => {
-                      onExportPNG();
+                      onExportPNGEnhanced();
                       setIsExportMenuOpen(false);
                     }}
                     className="w-full px-4 py-3 text-left text-sm text-white/90 hover:bg-panel transition-colors flex items-center gap-3"
@@ -348,7 +330,20 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    PNG Export (Timeline)
+                    PNG Export
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsExportSettingsOpen(true);
+                      setIsExportMenuOpen(false);
+                    }}
+                    className="w-full px-4 py-3 text-left text-sm text-white/90 hover:bg-panel transition-colors flex items-center gap-3 border-t border-line/70"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Export-Einstellungen...
                   </button>
                 </div>
               )}
@@ -367,80 +362,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </div>
       </div>
 
-      {/* Import Dialog */}
-      {isImportDialogOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div
-            ref={importDialogRef}
-            className="bg-panel-alt border border-line/70 rounded-3xl shadow-2xl shadow-black/50 p-6 w-full max-w-2xl"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.35em] text-text-muted">Datenquelle</p>
-                <h2 className="text-xl font-semibold text-white mt-1">Projekt importieren</h2>
-              </div>
-              <button
-                onClick={() => {
-                  setIsImportDialogOpen(false);
-                  setImportText('');
-                }}
-                className="p-2 rounded-xl text-text-muted hover:text-white hover:bg-panel transition-colors"
-                aria-label="Schließen"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <textarea
-              value={importText}
-              onChange={e => setImportText(e.target.value)}
-              placeholder="JSON-Daten hier einfügen..."
-              className="w-full h-56 px-4 py-3 bg-panel text-sm font-mono text-text border border-line/70 rounded-2xl focus:border-info focus:outline-none focus:ring-0 resize-none"
-            />
-
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 rounded-2xl border border-line/70 text-sm font-semibold text-white/90 bg-panel hover:border-info/60 flex items-center gap-2 transition-all"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Datei wählen
-              </button>
-
-              <div className="flex-1" />
-
-              <button
-                onClick={() => {
-                  setIsImportDialogOpen(false);
-                  setImportText('');
-                }}
-                className="px-4 py-2 text-sm font-medium text-text-muted hover:text-white transition-colors"
-              >
-                Abbrechen
-              </button>
-
-              <button
-                onClick={handleImportSubmit}
-                disabled={!importText.trim()}
-                className="px-5 py-2 rounded-2xl bg-accent-gradient text-sm font-semibold text-white shadow-md hover:shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Importieren
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Import Dialog - Rendered as Portal */}
+      <ImportDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        onImport={onImportJSON}
+      />
 
       {/* Project Settings Dialog */}
       {isSettingsOpen && (
@@ -449,6 +376,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
           projectEnd={projectEnd}
           onUpdate={onProjectDatesChange}
           onClose={() => setIsSettingsOpen(false)}
+        />
+      )}
+
+      {/* Export Settings Modal */}
+      {isExportSettingsOpen && (
+        <ExportSettingsModal
+          isOpen={isExportSettingsOpen}
+          currentSettings={exportSettings}
+          onClose={() => setIsExportSettingsOpen(false)}
+          onSave={onExportSettingsChange}
         />
       )}
     </header>

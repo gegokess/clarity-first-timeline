@@ -3,6 +3,8 @@
  * Basierend auf der Dokumentation in docs/02-DataModel.md
  */
 
+import type { ExportSettings } from './types/ExportTypes';
+
 // Unterarbeitspaket (UAP)
 export interface SubPackage {
   id: string;
@@ -44,6 +46,7 @@ export interface Project {
   settings: ProjectSettings;
   workPackages: WorkPackage[];
   milestones: Milestone[];
+  exportSettings?: ExportSettings;
 }
 
 // Toast-Benachrichtigungen

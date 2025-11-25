@@ -7,10 +7,12 @@
 import React, { useState, useEffect } from 'react';
 import { useProject } from './hooks/useProject';
 import type { TimeResolution } from './types';
+import { DEFAULT_EXPORT_SETTINGS } from './types/ExportTypes';
 import Toolbar from './components/Toolbar';
 import Timeline from './components/Timeline';
 import ToastContainer from './components/ToastContainer';
 import { exportTimelineToPDF, exportTimelineToPNG, initPDFExport, cleanupPDFExport } from './utils/pdfUtils';
+import { exportToPDFEnhanced, exportToPNGEnhanced } from './utils/pdfUtils';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 type Selection = {
@@ -27,6 +29,7 @@ const App: React.FC = () => {
     removeToast,
     updateProjectName,
     updateProjectDates,
+    updateExportSettings,
     addWorkPackage,
     updateWorkPackage,
     deleteWorkPackage,
@@ -171,6 +174,33 @@ const App: React.FC = () => {
     setSelection({ type, id, parentId });
   };
 
+  // Enhanced export handlers
+  const handleExportPDFEnhanced = async () => {
+    try {
+      await exportToPDFEnhanced(
+        project.exportSettings || DEFAULT_EXPORT_SETTINGS,
+        project.name
+      );
+      showToast('success', 'PDF erfolgreich exportiert');
+    } catch (error) {
+      console.error('PDF Export Error:', error);
+      showToast('error', 'Fehler beim PDF-Export');
+    }
+  };
+
+  const handleExportPNGEnhanced = async () => {
+    try {
+      await exportToPNGEnhanced(
+        project.exportSettings || DEFAULT_EXPORT_SETTINGS,
+        project.name
+      );
+      showToast('success', 'PNG erfolgreich exportiert');
+    } catch (error) {
+      console.error('PNG Export Error:', error);
+      showToast('error', 'Fehler beim PNG-Export');
+    }
+  };
+
   return (
     <div
       className="flex flex-col h-screen bg-bg text-text"
@@ -190,11 +220,6 @@ const App: React.FC = () => {
         pixelsPerDay={pixelsPerDay}
         onPixelsPerDayChange={setPixelsPerDay}
         onExportJSON={exportToFile}
-        onImportJSON={() => document.getElementById('import-json')?.click()}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
         onCopyJSON={copyToClipboard}
         onExportPDF={exportTimelineToPDF}
         onExportPNG={async () => {
@@ -205,6 +230,15 @@ const App: React.FC = () => {
             showToast('error', 'Fehler beim PNG-Export');
           }
         }}
+        onImportJSON={importFromJSON}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        exportSettings={project.exportSettings || DEFAULT_EXPORT_SETTINGS}
+        onExportSettingsChange={updateExportSettings}
+        onExportPDFEnhanced={handleExportPDFEnhanced}
+        onExportPNGEnhanced={handleExportPNGEnhanced}
         onAddWorkPackage={addWorkPackage}
         onAddMilestone={addMilestone}
       />

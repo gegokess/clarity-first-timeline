@@ -4,9 +4,11 @@
  * Basierend auf docs/06-StateManagement.md
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { useHistory } from './useHistory';
+import { useState, useCallback, useEffect } from 'react';
 import type { Project, WorkPackage, SubPackage, Milestone, Toast } from '../types';
+import type { ExportSettings } from '../types/ExportTypes';
+import { DEFAULT_EXPORT_SETTINGS } from '../types/ExportTypes';
+import { useHistory } from './useHistory';
 import { today, minDate, maxDate, addDays, clampDate } from '../utils/dateUtils';
 import { validateProject, logValidationErrors, logValidationWarnings, getProjectWarnings } from '../utils/devChecks';
 
@@ -23,6 +25,7 @@ function createDefaultProject(): Project {
     },
     workPackages: [],
     milestones: [],
+    exportSettings: DEFAULT_EXPORT_SETTINGS,
   };
 }
 
@@ -113,6 +116,10 @@ export function useProject() {
     setProject(prev => ({ ...prev, start, end }));
     showToast('success', 'Projekt-Zeitraum aktualisiert');
   }, [setProject, showToast]);
+
+  const updateExportSettings = useCallback((settings: ExportSettings) => {
+    setProject(prev => ({ ...prev, exportSettings: settings }));
+  }, [setProject]);
 
   // Auto-Rollup: Berechnet AP-Daten aus UAPs
   const rollupWorkPackageDates = useCallback((apId: string) => {
@@ -401,17 +408,38 @@ export function useProject() {
 
   const importFromJSON = useCallback((jsonString: string) => {
     try {
-      const parsed = JSON.parse(jsonString) as Project;
+      const parsed = JSON.parse(jsonString) as Partial<Project>;
 
-      // Validiere importiertes Projekt
-      const errors = validateProject(parsed);
+      // Normalize imported data by filling in missing fields with defaults
+      const normalized: Project = {
+        id: parsed.id || crypto.randomUUID(),
+        name: parsed.name || 'Importiertes Projekt',
+        description: parsed.description || '',
+        settings: {
+          clampUapInsideManualAp: parsed.settings?.clampUapInsideManualAp ?? false,
+        },
+        workPackages: (parsed.workPackages || []).map(wp => ({
+          ...wp,
+          isCollapsed: wp.isCollapsed ?? false,
+          mode: wp.mode || 'auto',
+          subPackages: wp.subPackages || [],
+        })),
+        milestones: parsed.milestones || [],
+        start: parsed.start,
+        end: parsed.end,
+        exportSettings: parsed.exportSettings || DEFAULT_EXPORT_SETTINGS,
+      };
+
+      // Validiere normalisiertes Projekt
+      const errors = validateProject(normalized);
       if (errors.length > 0) {
         logValidationErrors('Imported Project', errors);
         showToast('error', 'Importiertes Projekt ist ungültig');
+        console.error('Validation errors:', errors);
         return;
       }
 
-      resetHistory(parsed);
+      resetHistory(normalized);
       showToast('success', 'Projekt erfolgreich importiert');
     } catch (error) {
       console.error('Fehler beim Importieren:', error);
@@ -442,6 +470,7 @@ export function useProject() {
     updateProjectName,
     updateProjectSettings,
     updateProjectDates,
+    updateExportSettings,
 
     // WorkPackage
     addWorkPackage,

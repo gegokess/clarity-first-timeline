@@ -146,7 +146,8 @@ body.print-mode .toolbar-actions,
 body.print-mode button,
 body.print-mode .three-dot-menu,
 body.print-mode .no-print,
-body.print-mode .work-package-tree {
+body.print-mode .work-package-tree,
+body.print-mode .collapse-arrow {
   display: none !important;
 }
 
@@ -157,7 +158,8 @@ body.print-mode .work-package-tree {
   button,
   .three-dot-menu,
   .no-print,
-  .work-package-tree {
+  .work-package-tree,
+  .collapse-arrow {
     display: none !important;
   }
 }

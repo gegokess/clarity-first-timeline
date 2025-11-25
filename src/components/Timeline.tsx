@@ -181,12 +181,15 @@ const Timeline: React.FC<TimelineProps> = ({
   const isPrintMode = usePrintMode();
   const timeScaleConfig = TIME_SCALE_CONFIGS[timeResolution];
 
-  const paddingDays = Math.max(timeScaleConfig.tickDays, 7);
+  // In export mode, use minimal padding (1 week), otherwise use scale-appropriate padding
+  const paddingDays = isPrintMode ? 7 : Math.max(timeScaleConfig.tickDays, 7);
   const effectiveViewStart = addDays(timelineBounds.min, -paddingDays);
   const effectiveViewEnd = addDays(timelineBounds.max, paddingDays);
   const effectiveViewDays = Math.max(1, daysBetween(effectiveViewStart, effectiveViewEnd));
 
-  const desiredWidth = effectiveViewDays * pixelsPerDay + TIMELINE_CONSTANTS.PADDING_LEFT + TIMELINE_CONSTANTS.PADDING_RIGHT;
+  // Add extra right padding in print mode for labels
+  const extraRightPadding = isPrintMode ? 150 : 0;
+  const desiredWidth = effectiveViewDays * pixelsPerDay + TIMELINE_CONSTANTS.PADDING_LEFT + TIMELINE_CONSTANTS.PADDING_RIGHT + extraRightPadding;
   const svgWidth = isPrintMode ? Math.max(desiredWidth, 640) : Math.max(viewWidth, desiredWidth);
   const availableWidth = svgWidth - TIMELINE_CONSTANTS.PADDING_LEFT - TIMELINE_CONSTANTS.PADDING_RIGHT;
   const dayPixel = pixelsPerDay; // Use prop directly
@@ -236,10 +239,12 @@ const Timeline: React.FC<TimelineProps> = ({
   const getRowHeight = (wp: WorkPackage): number => {
     const stackHeight = getSubStackHeight(wp);
     const blockAbove = AP_LABEL_HEIGHT + AP_LABEL_SPACING + apBarHeight + AP_LABEL_SPACING;
+    // Reduce row padding in print mode for more compact layout
+    const rowPadding = isPrintMode ? 20 : ROW_PADDING;
     if (stackHeight === 0) {
-      return blockAbove + ROW_PADDING;
+      return blockAbove + rowPadding;
     }
-    return blockAbove + stackHeight + ROW_PADDING;
+    return blockAbove + stackHeight + rowPadding;
   };
 
   const getRowY = (wpIndex: number): number => {
@@ -258,12 +263,14 @@ const Timeline: React.FC<TimelineProps> = ({
       rowsHeight +
       PADDING_BOTTOM +
       MILESTONE_BOTTOM_OFFSET +
-      60
+      30  // Reduced from 60 for tighter spacing
     );
   }, [workPackages, HEADER_HEIGHT, PADDING_TOP, PADDING_BOTTOM, MILESTONE_BOTTOM_OFFSET, apBarHeight, subBarHeight, subStackSpacing]);
 
   const timeTicks = useMemo(() => {
-    const ticks: { date: string; x: number; label: string }[] = [];
+    const majorTicks: { date: string; x: number; label: string }[] = [];
+    const minorTicks: { date: string; x: number }[] = [];
+    
     const formatLabel = (date: string) => {
       switch (timeScaleConfig.format) {
         case 'day':
@@ -280,28 +287,82 @@ const Timeline: React.FC<TimelineProps> = ({
       }
     };
 
-    const pushTick = (date: string, withLabel = true) => {
-      ticks.push({
+    const pushMajorTick = (date: string, withLabel = true) => {
+      majorTicks.push({
         date,
         x: dateToX(date),
         label: withLabel ? formatLabel(date) : '',
       });
     };
 
-    pushTick(effectiveViewStart, true);
+    // Generate major ticks
+    pushMajorTick(effectiveViewStart, true);
 
     let nextDate = addDays(effectiveViewStart, timeScaleConfig.tickDays);
     let safety = 0;
     while (daysBetween(nextDate, effectiveViewEnd) > 0 && safety < 200) {
-      pushTick(nextDate, true);
+      pushMajorTick(nextDate, true);
       nextDate = addDays(nextDate, timeScaleConfig.tickDays);
       safety += 1;
     }
 
-    pushTick(effectiveViewEnd, false);
+    pushMajorTick(effectiveViewEnd, false);
 
-    return ticks;
+    // Generate minor ticks (subdivisions between major ticks)
+    // Use smaller intervals for minor grid
+    const minorTickDays = timeScaleConfig.tickDays <= 7 ? 1 : 7; // Daily for week view, weekly for larger views
+    
+    let minorDate = addDays(effectiveViewStart, minorTickDays);
+    let minorSafety = 0;
+    while (daysBetween(minorDate, effectiveViewEnd) > 0 && minorSafety < 500) {
+      // Only add if it's not already a major tick
+      const isMajorTick = majorTicks.some(tick => tick.date === minorDate);
+      if (!isMajorTick) {
+        minorTicks.push({
+          date: minorDate,
+          x: dateToX(minorDate),
+        });
+      }
+      minorDate = addDays(minorDate, minorTickDays);
+      minorSafety += 1;
+    }
+
+    return { majorTicks, minorTicks };
   }, [effectiveViewStart, effectiveViewEnd, timeScaleConfig, dateToX]);
+
+  // Calculate year labels (centered over each year's time units)
+  const yearLabels = useMemo(() => {
+    const years = new Map<string, { ticks: typeof timeTicks.majorTicks }>();
+    
+    // Group ticks by year
+    timeTicks.majorTicks.forEach(tick => {
+      const year = tick.date.slice(0, 4);
+      if (!years.has(year)) {
+        years.set(year, { ticks: [] });
+      }
+      years.get(year)!.ticks.push(tick);
+    });
+
+    // Calculate center position for each year
+    return Array.from(years.entries()).map(([year, data]) => {
+      const firstTick = data.ticks[0];
+      const lastTick = data.ticks[data.ticks.length - 1];
+      let centerX = (firstTick.x + lastTick.x) / 2;
+      
+      // Prevent clipping at edges - ensure label stays within bounds
+      const labelHalfWidth = 25; // Approximate half width of year text
+      const minX = PADDING_LEFT + labelHalfWidth;
+      const maxX = svgWidth - labelHalfWidth - 20;
+      centerX = Math.max(minX, Math.min(maxX, centerX));
+      
+      return {
+        year,
+        x: centerX,
+        startX: firstTick.x,
+        endX: lastTick.x,
+      };
+    });
+  }, [timeTicks.majorTicks, svgWidth]);
 
   const handleMouseDown = (
     e: React.MouseEvent,
@@ -568,31 +629,70 @@ const Timeline: React.FC<TimelineProps> = ({
           height={HEADER_HEIGHT}
           fill={isPrintMode ? PRINT_PALETTE.background : 'var(--color-panel)'}
         />
-        {timeTicks.map(tick => (
-          <g key={`tick-${tick.date}`}>
+        
+        {/* Year labels - centered above time units */}
+        {yearLabels.map(yearLabel => (
+          <text
+            key={`year-${yearLabel.year}`}
+            x={yearLabel.x}
+            y={HEADER_HEIGHT - 35}
+            textAnchor="middle"
+            fill={isPrintMode ? PRINT_PALETTE.text : 'var(--color-text)'}
+            fontSize={isPrintMode ? 13 : 14}
+            fontWeight={isPrintMode ? 700 : 600}
+            opacity={0.9}
+          >
+            {yearLabel.year}
+          </text>
+        ))}
+        
+        {/* Minor grid lines - subtle subdivisions */}
+        {timeTicks.minorTicks
+          .filter(tick => !isPrintMode || (tick.date >= timelineBounds.min && tick.date <= timelineBounds.max))
+          .map(tick => (
             <line
+              key={`minor-tick-${tick.date}`}
               x1={tick.x}
               y1={HEADER_HEIGHT}
               x2={tick.x}
               y2={totalHeight}
-              stroke={isPrintMode ? PRINT_PALETTE.grid : 'var(--color-line)'}
-              strokeWidth={isPrintMode ? 0.6 : 0.8}
-              strokeDasharray={isPrintMode ? '2 6' : '4 6'}
+              stroke={isPrintMode ? '#ECEFF2' : 'var(--color-line)'}
+              strokeWidth={isPrintMode ? 0.45 : 0.6}
+              strokeDasharray={isPrintMode ? '2 7' : '3 6'}
+              opacity={isPrintMode ? 0.33 : 0.8}
             />
-            {tick.label && (
-              <text
-                x={tick.x}
-                y={HEADER_HEIGHT - 20}
-                textAnchor="middle"
-                fill={isPrintMode ? PRINT_PALETTE.metadata : 'var(--color-text-muted)'}
-                fontSize={isPrintMode ? 11 : 12}
-                fontWeight={isPrintMode ? 500 : 400}
-              >
-                {tick.label}
-              </text>
-            )}
-          </g>
-        ))}
+          ))}
+        
+        {/* Major grid lines - prominent time units */}
+        {timeTicks.majorTicks
+          .filter(tick => !isPrintMode || (tick.date >= timelineBounds.min && tick.date <= timelineBounds.max))
+          .map(tick => (
+            <g key={`major-tick-${tick.date}`}>
+              <line
+                x1={tick.x}
+                y1={HEADER_HEIGHT}
+                x2={tick.x}
+                y2={totalHeight}
+                stroke={isPrintMode ? '#B5BBC6' : 'var(--color-line)'}
+                strokeWidth={isPrintMode ? 1.0 : 1}
+                strokeDasharray={isPrintMode ? '5 7' : '4 6'}
+                opacity={isPrintMode ? 0.7 : 1}
+                className={isPrintMode ? 'export-grid' : ''}
+              />
+              {tick.label && (
+                <text
+                  x={tick.x}
+                  y={HEADER_HEIGHT - 20}
+                  textAnchor="middle"
+                  fill={isPrintMode ? PRINT_PALETTE.metadata : 'var(--color-text-muted)'}
+                  fontSize={isPrintMode ? 11 : 12}
+                  fontWeight={isPrintMode ? 500 : 400}
+                >
+                  {tick.label}
+                </text>
+              )}
+            </g>
+          ))}
         <line
           x1={0}
           y1={HEADER_HEIGHT}
@@ -650,8 +750,8 @@ const Timeline: React.FC<TimelineProps> = ({
               y={apBarY}
               width={apWidth}
               height={apBarHeight}
-              fill={isPrintMode ? 'transparent' : palette.ap}
-              fillOpacity={isPrintMode ? 0 : 0.65}
+              fill={isPrintMode ? '#FFFFFF' : palette.ap}
+              fillOpacity={isPrintMode ? 1 : 0.65}
               stroke={palette.ap}
               strokeWidth={isPrintMode ? 1.4 : 1}
               rx={isPrintMode ? 3 : 10}
@@ -690,10 +790,10 @@ const Timeline: React.FC<TimelineProps> = ({
               {dateRangeLabel}
             </text>
 
-            {/* Toggle Button */}
-            {hasSubPackages && (
+            {/* Toggle Button - Hidden in export/print mode */}
+            {!isPrintMode && hasSubPackages && (
               <g
-                className="cursor-pointer hover:opacity-80 transition-opacity"
+                className="cursor-pointer hover:opacity-80 transition-opacity collapse-arrow"
                 onClick={(e) => {
                   e.stopPropagation();
                   onToggleCollapse(wp.id);
