@@ -13,6 +13,14 @@ import {
   minDate,
   maxDate,
   fromISODate,
+  getStartOfMonth,
+  getNextMonth,
+  getStartOfWeek,
+  getNextWeek,
+  getStartOfQuarter,
+  getNextQuarter,
+  getStartOfYear,
+  getNextYear,
 } from '../utils/dateUtils';
 import { usePrintMode } from '../hooks/usePrintMode';
 import ContextMenu, { ContextMenuItem } from './ContextMenu';
@@ -280,33 +288,62 @@ const Timeline: React.FC<TimelineProps> = ({
         case 'month':
           return getMonthName(date).slice(0, 3);
         case 'quarter':
+          return getQuarterString(date);
         case 'year':
         default:
-          if (timeScaleConfig.format === 'year') return date.slice(0, 4);
-          return getQuarterString(date);
+          return date.slice(0, 4);
       }
     };
 
-    const pushMajorTick = (date: string, withLabel = true) => {
-      majorTicks.push({
-        date,
-        x: dateToX(date),
-        label: withLabel ? formatLabel(date) : '',
-      });
+    // Helper functions to get period-aligned dates
+    const getStartOfPeriod = (date: string) => {
+      switch (timeScaleConfig.format) {
+        case 'day':
+          return date; // Days are already aligned
+        case 'week':
+          return getStartOfWeek(date);
+        case 'month':
+          return getStartOfMonth(date);
+        case 'quarter':
+          return getStartOfQuarter(date);
+        case 'year':
+          return getStartOfYear(date);
+        default:
+          return date;
+      }
     };
 
-    // Generate major ticks
-    pushMajorTick(effectiveViewStart, true);
+    const getNextPeriod = (date: string) => {
+      switch (timeScaleConfig.format) {
+        case 'day':
+          return addDays(date, 1);
+        case 'week':
+          return getNextWeek(date);
+        case 'month':
+          return getNextMonth(date);
+        case 'quarter':
+          return getNextQuarter(date);
+        case 'year':
+          return getNextYear(date);
+        default:
+          return addDays(date, timeScaleConfig.tickDays);
+      }
+    };
 
-    let nextDate = addDays(effectiveViewStart, timeScaleConfig.tickDays);
+    // Generate major ticks aligned to period boundaries
+    let currentDate = getStartOfPeriod(effectiveViewStart);
     let safety = 0;
-    while (daysBetween(nextDate, effectiveViewEnd) > 0 && safety < 200) {
-      pushMajorTick(nextDate, true);
-      nextDate = addDays(nextDate, timeScaleConfig.tickDays);
+    
+    while (daysBetween(currentDate, effectiveViewEnd) >= 0 && safety < 200) {
+      majorTicks.push({
+        date: currentDate,
+        x: dateToX(currentDate),
+        label: formatLabel(currentDate),
+      });
+      
+      currentDate = getNextPeriod(currentDate);
       safety += 1;
     }
-
-    pushMajorTick(effectiveViewEnd, false);
 
     // Generate minor ticks (subdivisions between major ticks)
     // Use smaller intervals for minor grid
@@ -327,7 +364,22 @@ const Timeline: React.FC<TimelineProps> = ({
       minorSafety += 1;
     }
 
-    return { majorTicks, minorTicks };
+    // Calculate label positions (centered between ticks)
+    const labeledTicks = majorTicks
+      .map((tick, i) => {
+        if (i === majorTicks.length - 1) return null; // Skip last tick (no label)
+        const nextTick = majorTicks[i + 1];
+        const centerX = (tick.x + nextTick.x) / 2;
+        return {
+          tickX: tick.x,
+          labelX: centerX,
+          label: tick.label,
+          date: tick.date,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    return { majorTicks, minorTicks, labeledTicks };
   }, [effectiveViewStart, effectiveViewEnd, timeScaleConfig, dateToX]);
 
   // Calculate year labels (centered over each year's time units)
@@ -667,31 +719,35 @@ const Timeline: React.FC<TimelineProps> = ({
         {timeTicks.majorTicks
           .filter(tick => !isPrintMode || (tick.date >= timelineBounds.min && tick.date <= timelineBounds.max))
           .map(tick => (
-            <g key={`major-tick-${tick.date}`}>
-              <line
-                x1={tick.x}
-                y1={HEADER_HEIGHT}
-                x2={tick.x}
-                y2={totalHeight}
-                stroke={isPrintMode ? '#B5BBC6' : 'var(--color-line)'}
-                strokeWidth={isPrintMode ? 1.0 : 1}
-                strokeDasharray={isPrintMode ? '5 7' : '4 6'}
-                opacity={isPrintMode ? 0.7 : 1}
-                className={isPrintMode ? 'export-grid' : ''}
-              />
-              {tick.label && (
-                <text
-                  x={tick.x}
-                  y={HEADER_HEIGHT - 20}
-                  textAnchor="middle"
-                  fill={isPrintMode ? PRINT_PALETTE.metadata : 'var(--color-text-muted)'}
-                  fontSize={isPrintMode ? 11 : 12}
-                  fontWeight={isPrintMode ? 500 : 400}
-                >
-                  {tick.label}
-                </text>
-              )}
-            </g>
+            <line
+              key={`major-tick-${tick.date}`}
+              x1={tick.x}
+              y1={HEADER_HEIGHT}
+              x2={tick.x}
+              y2={totalHeight}
+              stroke={isPrintMode ? '#B5BBC6' : 'var(--color-line)'}
+              strokeWidth={isPrintMode ? 1.0 : 1}
+              strokeDasharray={isPrintMode ? '5 7' : '4 6'}
+              opacity={isPrintMode ? 0.7 : 1}
+              className={isPrintMode ? 'export-grid' : ''}
+            />
+          ))}
+        
+        {/* Time unit labels - centered between tick marks */}
+        {timeTicks.labeledTicks
+          .filter(item => !isPrintMode || (item.date >= timelineBounds.min && item.date <= timelineBounds.max))
+          .map(item => (
+            <text
+              key={`label-${item.date}`}
+              x={item.labelX}
+              y={HEADER_HEIGHT - 20}
+              textAnchor="middle"
+              fill={isPrintMode ? PRINT_PALETTE.metadata : 'var(--color-text-muted)'}
+              fontSize={isPrintMode ? 11 : 12}
+              fontWeight={isPrintMode ? 500 : 400}
+            >
+              {item.label}
+            </text>
           ))}
         <line
           x1={0}

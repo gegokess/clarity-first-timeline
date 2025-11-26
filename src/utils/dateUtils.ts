@@ -160,3 +160,73 @@ export function getViewportDates(centerDate: string, viewDays: number): { start:
   const end = addDays(start, viewDays);
   return { start, end };
 }
+
+/**
+ * Gibt den ersten Tag des Monats für ein gegebenes Datum zurück
+ */
+export function getStartOfMonth(isoDate: string): string {
+  const date = fromISODate(isoDate);
+  return toISODate(new Date(date.getFullYear(), date.getMonth(), 1));
+}
+
+/**
+ * Gibt den ersten Tag des nächsten Monats zurück
+ */
+export function getNextMonth(isoDate: string): string {
+  const date = fromISODate(isoDate);
+  return toISODate(new Date(date.getFullYear(), date.getMonth() + 1, 1));
+}
+
+/**
+ * Gibt den Montag der Woche für ein gegebenes Datum zurück
+ */
+export function getStartOfWeek(isoDate: string): string {
+  const date = fromISODate(isoDate);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // Montag als Wochenstart
+  const monday = new Date(date);
+  monday.setDate(date.getDate() + diff);
+  return toISODate(monday);
+}
+
+/**
+ * Gibt den Montag der nächsten Woche zurück
+ */
+export function getNextWeek(isoDate: string): string {
+  return addDays(getStartOfWeek(isoDate), 7);
+}
+
+/**
+ * Gibt den ersten Tag des Quartals für ein gegebenes Datum zurück
+ */
+export function getStartOfQuarter(isoDate: string): string {
+  const date = fromISODate(isoDate);
+  const quarter = Math.floor(date.getMonth() / 3);
+  return toISODate(new Date(date.getFullYear(), quarter * 3, 1));
+}
+
+/**
+ * Gibt den ersten Tag des nächsten Quartals zurück
+ */
+export function getNextQuarter(isoDate: string): string {
+  const date = fromISODate(isoDate);
+  const quarter = Math.floor(date.getMonth() / 3);
+  return toISODate(new Date(date.getFullYear(), (quarter + 1) * 3, 1));
+}
+
+/**
+ * Gibt den ersten Tag des Jahres für ein gegebenes Datum zurück
+ */
+export function getStartOfYear(isoDate: string): string {
+  const date = fromISODate(isoDate);
+  return toISODate(new Date(date.getFullYear(), 0, 1));
+}
+
+/**
+ * Gibt den ersten Tag des nächsten Jahres zurück
+ */
+export function getNextYear(isoDate: string): string {
+  const date = fromISODate(isoDate);
+  return toISODate(new Date(date.getFullYear() + 1, 0, 1));
+}
+
